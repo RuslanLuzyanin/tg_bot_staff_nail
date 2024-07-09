@@ -1,6 +1,15 @@
-require('dotenv').config();
+class Config {
+    constructor() {
+        require('dotenv').config();
+    }
 
-module.exports = {
-	token: process.env.TELEGRAM_TOKEN,
-	adminChatId: process.env.USER_ID,
-};
+    get telegramToken() {
+        return process.env.TELEGRAM_TOKEN;
+    }
+
+    get userId() {
+        return process.env.USER_ID;
+    }
+}
+
+module.exports = new Config();
