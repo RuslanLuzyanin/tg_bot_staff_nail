@@ -1,13 +1,14 @@
 const createMenu = require('../../utils/createMenu');
-const procedures = {
-    manicure: { text: 'Маникюр', callback: 'select_manicure', duration: 3 },
-    pedicure: { text: 'Педикюр', callback: 'select_pedicure', duration: 4 },
-};
+const { procedures } = require('../../constants');
 
 function getProcedureMenu() {
     const menuItems = {};
     Object.keys(procedures).forEach((key) => {
-        menuItems[key] = { text: procedures[key].text, callback: procedures[key].callback };
+        const procedure = procedures[key];
+        menuItems[key] = {
+            text: procedure.text,
+            callback: `select_${key}`,
+        };
     });
     menuItems['back'] = { text: 'Назад', callback: 'back_to_main_menu' };
     return createMenu(menuItems);

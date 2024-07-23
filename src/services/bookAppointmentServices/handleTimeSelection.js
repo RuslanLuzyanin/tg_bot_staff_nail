@@ -1,5 +1,6 @@
 const getUserIdFromContext = require('../../utils/getUserIdFromContext');
 const { selectedAppointments } = require('./updateAppointments');
+const { procedures } = require('../../constants');
 
 function handleTimeSelection(ctx) {
     const userId = getUserIdFromContext(ctx);
@@ -14,7 +15,8 @@ function handleTimeSelection(ctx) {
     if (selectedProcedure && date) {
         selectedAppointments[userId] = { ...selectedAppointments[userId], time: selectedTime };
         const { userName } = selectedAppointments[userId];
-        const confirmationMessage = `Подтвердите запись:\n\nИмя пользователя: ${userName}\nДата: ${date}\nВремя: ${formattedTime}\nПроцедура: ${selectedProcedure}`;
+        const procedureName = procedures[selectedProcedure]?.text || selectedProcedure;
+        const confirmationMessage = `Подтвердите запись:\n\nИмя пользователя: ${userName}\nДата: ${date}\nВремя: ${formattedTime}\nПроцедура: ${procedureName}`;
         return confirmationMessage;
     } else {
         console.log('Процедура или дата не выбраны, время не сохранено');

@@ -1,7 +1,7 @@
 const createMenu = require('../../utils/createMenu');
 const moment = require('moment');
 
-function getDateMenu(start, showNextDates = true, showPrevDates = false) {
+function getDateMenu(start, showNextDates = true, showPrevDates = false, unavailableDates = {}) {
     const menuItems = {};
     const today = moment();
     const startDate = today.clone().add(start + 1, 'days');
@@ -9,10 +9,19 @@ function getDateMenu(start, showNextDates = true, showPrevDates = false) {
     for (let i = 0; i < 24; i++) {
         const date = startDate.clone().add(i, 'days').format('DD.MM');
         const callback = `select_date_${date}`;
-        menuItems[`date${i + 1}`] = {
-            text: date,
-            callback: callback,
-        };
+
+        if (!unavailableDates[date]) {
+            // Проверяем, есть ли дата в объекте unavailableDates
+            menuItems[`date${i + 1}`] = {
+                text: date,
+                callback: callback,
+            };
+        } else {
+            menuItems[`date${i + 1}`] = {
+                text: 'Занято',
+                callback: 'dummy_callback',
+            };
+        }
     }
 
     menuItems['back'] = {

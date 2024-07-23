@@ -2,6 +2,7 @@ const getUserIdFromContext = require('../../utils/getUserIdFromContext');
 const { selectedAppointments } = require('./updateAppointments');
 const { MongoClient } = require('mongodb');
 const prepareAppointmentData = require('../../utils/prepareAppointmentData');
+const { procedures } = require('../../constants');
 
 const uri = 'mongodb://localhost:27017';
 
@@ -9,7 +10,8 @@ async function handleConfirmAppointment(ctx) {
     const userId = getUserIdFromContext(ctx);
     const { userName, date, time, procedure } = selectedAppointments[userId];
     const formattedTime = time.replace(/(\d{2})(\d{2})/, '$1:$2');
-    const message = `Ваша запись подтверждена!\n\nИмя пользователя: ${userName}\nДата: ${date}\nВремя: ${formattedTime}\nПроцедура: ${procedure}`;
+    const procedureName = procedures[procedure]?.text || procedure;
+    const message = `Ваша запись подтверждена!\n\nИмя пользователя: ${userName}\nДата: ${date}\nВремя: ${formattedTime}\nПроцедура: ${procedureName}`;
     ctx.editMessageText(message);
 
     // Подготовка данных для вставки
