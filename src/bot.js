@@ -1,39 +1,58 @@
-require('dotenv').config();
-const { Telegraf, session } = require('telegraf');
-const config = require('./config');
-const { setupStartCommand } = require('./handlers/start');
-const { setupContactCommand } = require('./handlers/contact');
-const { setupMyWorkCommand } = require('./handlers/mywork');
-const { setupInfoCommand } = require('./handlers/info');
-const BookAppointment = require('./handlers/bookAppointment');
+const { Telegraf } = require('telegraf');
+const { MongoClient } = require('mongodb');
+const { session } = require('telegraf-session-mongodb');
+const StartCommand = require('./commands/StartCommand');
+const InfoCommand = require('./commands/InfoCommand');
+const PortfolioCommand = require('./commands/PortfolioCommand');
+const ContactCommand = require('./commands/ContactCommand');
+const CallbackHandler = require('./callbacks/CallbackHandler');
+const UserCallback = require('./callbacks/UserCallback');
+const AppointmentCallback = require('./callbacks/AppointmentCallback');
+const MenuCallback = require('./callbacks/MenuCallback');
+const AppLogger = require('./AppLogger');
+const config = require('./Config');
+const mongoose = require('mongoose');
 
-const bot = new Telegraf(config.telegramToken);
-
-setupStartCommand(bot);
-setupContactCommand(bot);
-setupMyWorkCommand(bot);
-setupInfoCommand(bot);
-
-const bookAppointment = new BookAppointment();
-
-bot.start((ctx) => {
-    ctx.reply('Главное меню:', {
-        reply_markup: {
-            inline_keyboard: [[{ text: 'Записаться на приём', callback_data: 'book_appointment' }]],
-        },
-    });
-});
-
-bot.on('callback_query', (ctx) => {
-    const callbackData = ctx.callbackQuery.data;
-
-    if (callbackData === 'book_appointment') {
-        bookAppointment.startBooking(ctx);
-    } else {
-        bookAppointment.handleCallback(ctx);
+class TelegramBot {
+    constructor() {
+        this.bot = new Telegraf(config.telegramToken);
+        this.logger = new AppLogger();
     }
-});
 
-bot.launch();
+    async start() {
+        try {
+            await mongoose.connect(config.uri);
+            this.logger.info('Подключение к MongoDB успешно установлено');
 
-module.exports = bot;
+            const client = await MongoClient.connect(config.uri);
+            this.logger.info('Соединение с MongoDB установлено');
+
+            const db = client.db();
+            this.bot.use(session(db, { collectionName: 'sessions' }));
+            this.logger.info('Middleware сессий установлен');
+
+            const commands = [StartCommand, InfoCommand, PortfolioCommand, ContactCommand];
+
+            commands.forEach((Command) => {
+                this.bot.command(Command.name, (ctx) => new Command(ctx).handle());
+            });
+
+            this.bot.on('callback_query', (ctx) => {
+                const callbackHandler = new CallbackHandler(
+                    ctx,
+                    new UserCallback(ctx),
+                    new AppointmentCallback(ctx),
+                    new MenuCallback(ctx)
+                );
+                callbackHandler.handleCallback(ctx.callbackQuery.data);
+            });
+
+            this.bot.launch();
+            this.logger.info('Бот запущен');
+        } catch (error) {
+            this.logger.error('Ошибка при запуске бота:', error);
+        }
+    }
+}
+
+module.exports = TelegramBot;

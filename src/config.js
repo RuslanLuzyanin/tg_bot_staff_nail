@@ -18,6 +18,10 @@ class Config {
     get userId() {
         return this.get('USER_ID');
     }
+
+    get uri() {
+        return this.get('MONGO_URI');
+    }
 }
 
 module.exports = new Config();
