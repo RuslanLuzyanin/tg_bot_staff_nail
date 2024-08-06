@@ -1,44 +1,42 @@
 const User = require('../../models/User');
+const moment = require('moment');
 
 class UserCallback {
-    constructor(ctx) {
+    /**
+     * Создает экземпляр класса UserCallback.
+     * @param {object} ctx - Контекст телеграф.
+     * @param {object} logger - Объект логгера.
+     */
+    constructor(ctx, logger) {
         this.ctx = ctx;
+        this.logger = logger;
     }
+
     /**
-     * Обрабатывает колбек "Записаться на приём".
-     *
-     * Получает ID пользователя из контекста, сохраняет его в сессию и добавляет/обновляет
-     * информацию о пользователе в БД.
-     *
+     * Обрабатывает колбэк верификации пользователя.
+     * Сохраняет или обновляет информацию о пользователе в базе данных.
      * @param {object} ctx - Контекст телеграф.
      */
-    async handleRecordUser(ctx) {
-        const userId = ctx.update.callback_query.from.id;
-        ctx.session.userId = userId;
+    handleVerification = async () => {
+        const userId = this.ctx.from.id.toString();
+        const userName = this.ctx.from.first_name;
+        const chatId = this.ctx.chat.id.toString();
 
-        try {
-            const existingUser = await User.findOne({ id: userId });
-            if (!existingUser) {
-                const newUser = new User({
-                    id: userId,
-                    name: ctx.update.callback_query.from.first_name,
-                    phone: '456',
-                });
-                await newUser.save();
-            }
-        } catch (error) {
-            throw new Error('Ошибка  при  сохранении  пользователя  в  БД:', error);
+        let user = await User.findOne({ id: userId });
+
+        if (!user) {
+            user = new User({ id: userId, name: userName, chatId: chatId });
+            await user.save();
+        } else {
+            user.name = userName;
+            user.chatId = chatId;
+            await user.save();
         }
-    }
 
-    /**
-     * Очищает значение ID пользователя в сессии.
-     *
-     * @param {object} ctx - Контекст телеграф.
-     */
-    async clearIdUser(ctx) {
-        ctx.session.userId = null;
-    }
+        this.logger.info(
+            'Информация о пользователе успешно сохранена в базу данных'
+        );
+    };
 }
 
 module.exports = UserCallback;

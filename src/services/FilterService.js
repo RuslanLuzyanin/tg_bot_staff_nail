@@ -8,7 +8,7 @@ class FilterService {
      * @param {number} procedureDuration - Длительность процедуры в часах.
      * @returns {string[]} - Список доступных временных интервалов, разбитых на отрезки, соответствующие длительности процедуры.
      */
-    filterAvailableTimes(params) {
+    static filterAvailableTimes(params) {
         const { startTime, endTime, occupiedTimes, procedureDuration } = params;
         // Разбиваем начало и конец работы на часы
         const startHour = parseInt(startTime.split(':')[0]);

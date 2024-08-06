@@ -1,11 +1,11 @@
-const mongoose = require('mongoose');
+const { Schema, model } = require('mongoose');
 
-const procedureSchema = new mongoose.Schema({
+const procedureSchema = new Schema({
     englishName: { type: String, required: true, unique: true },
     russianName: { type: String, required: true },
     duration: { type: Number, required: true },
 });
 
-const Procedure = mongoose.model('Procedure', procedureSchema);
+const Procedure = model('Procedure', procedureSchema);
 
 module.exports = Procedure;

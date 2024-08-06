@@ -5,7 +5,6 @@ class ContactCommand {
     static name = 'contact';
     constructor(ctx) {
         this.ctx = ctx;
-        this.menuService = new MenuService();
     }
 
     async handle() {
@@ -16,8 +15,7 @@ class ContactCommand {
             { text: 'WhatsApp', url: 'https://wa.me/79523825280' },
         ];
 
-        this.menuService.setMenuType('url');
-        const keyboard = Markup.inlineKeyboard(this.menuService.createMenu(menuData));
+        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 2, 'url'));
 
         await this.ctx.reply('Связаться со мной можно по этим ссылкам:', keyboard);
     }

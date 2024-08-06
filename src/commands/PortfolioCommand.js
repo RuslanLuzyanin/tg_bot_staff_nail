@@ -6,21 +6,19 @@ class PortfolioCommand {
         this.ctx = ctx;
     }
     async handle() {
-        try {
-            const portfolios = await Portfolio.find();
-            const photoUrls = portfolios.map((portfolio) => portfolio.imageUrl);
+        const portfolios = await Portfolio.find();
+        const photoUrls = portfolios.map((portfolio) => portfolio.imageUrl);
 
-            if (this.ctx.from.id === this.ctx.message.from.id) {
-                await this.ctx.reply('Мои работы:');
-                await this.ctx.telegram.sendMediaGroup(
-                    this.ctx.chat.id,
-                    photoUrls.map((url) => ({ type: 'photo', media: url }))
-                );
-            } else {
-                await this.ctx.reply('Эта команда доступна только тому, кто ее вызвал.');
-            }
-        } catch (error) {
-            console.error('Ошибка при обработке команды "Портфолио":', error);
+        const { from, message, telegram, chat } = this.ctx;
+
+        if (from.id === message.from.id) {
+            await ctx.reply('Мои работы:');
+            await telegram.sendMediaGroup(
+                chat.id,
+                photoUrls.map((url) => ({ type: 'photo', media: url }))
+            );
+        } else {
+            await ctx.reply('Эта команда доступна только тому, кто ее вызвал.');
         }
     }
 }

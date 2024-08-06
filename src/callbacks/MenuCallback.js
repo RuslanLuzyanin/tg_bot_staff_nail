@@ -1,25 +1,59 @@
 const { Markup } = require('telegraf');
 const MenuService = require('../services/MenuService');
 const FilterService = require('../services/FilterService');
-const FormatService = require('../services/FormatService');
 const Procedure = require('../../models/Procedure');
 const WorkingTime = require('../../models/WorkingTime');
 const Record = require('../../models/Record');
 const moment = require('moment');
 
 class MenuCallback {
-    constructor(ctx) {
+    /**
+     * Создает экземпляр класса MenuCallback.
+     * @param {object} ctx - Контекст телеграф.
+     * @param {object} logger - Объект логгера.
+     */
+    constructor(ctx, logger) {
         this.ctx = ctx;
-        this.menuService = new MenuService();
-        this.formatService = new FormatService();
+        this.logger = logger;
     }
+
+    /**
+     * Обрабатывает колбек "Назад".
+     *
+     * Возвращает пользователя в главное меню.
+     */
+    createMainMenu = async () => {
+        const menuData = [
+            { text: 'Запись на приём', callback: 'menu_to_procedure_menu' },
+            { text: 'Отменить запись', callback: 'menu_to_cancel_appointment' },
+            { text: 'Проверить запись', callback: 'menu_to_check_appointment' },
+        ];
+
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData)
+        );
+        await this.ctx.editMessageText('Главное меню:', keyboard);
+        this.logger.info('Главное меню создано');
+    };
 
     /**
      * Обрабатывает колбек "Записаться на приём".
      *
      * Запрашивает у пользователя выбор процедуры из базы данных.
+     * Если у пользователя уже есть 3 записи, выводит сообщение и не создает меню.
      */
-    async createProcedureMenu() {
+    createProcedureMenu = async () => {
+        const appointments = this.ctx.session.appointments;
+        if (appointments.length >= 3) {
+            await this.ctx.reply(
+                'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись.'
+            );
+            await this.ctx.reply(
+                'Чтобы создать новую запись, отменить одну из существующих.'
+            );
+            return;
+        }
+
         const procedures = await Procedure.find({});
         const menuData = procedures.map((procedure) => ({
             text: procedure.russianName,
@@ -28,48 +62,55 @@ class MenuCallback {
 
         menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
 
-        const keyboard = Markup.inlineKeyboard(this.menuService.createMenu(menuData));
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData)
+        );
         await this.ctx.editMessageText('Выберите процедуру:', keyboard);
-    }
+        this.logger.info('Меню выбора процедуры создано');
+    };
 
-    /**
-     * Обрабатывает колбек "Назад".
-     *
-     * Возвращает пользователя в главное меню.
-     */
-    async createMainMenu() {
-        const menuData = [
-            { text: 'Записаться на приём', callback: 'menu_book_appointment' },
-            { text: 'Отменить запись', callback: 'menu_cancel_appointment' },
-            { text: 'Проверить запись', callback: 'menu_check_appointment' },
-        ];
-
-        const keyboard = Markup.inlineKeyboard(this.menuService.createMenu(menuData));
-        await this.ctx.editMessageText('Главное меню:', keyboard);
-    }
     /**
      * Создаёт меню выбора месяца.
      *
      * Выбор месяца представляется из 2-ух (текущий и следующий).
      */
-    async createMonthMenu() {
-        const currentMonth = this.formatService.capitalizeFirstLetter(moment().locale('ru').format('MMMM'));
-        const nextMonth = this.formatService.capitalizeFirstLetter(
-            moment().locale('ru').add(1, 'month').format('MMMM')
-        );
+    createMonthMenu = async () => {
+        const currentMonth = moment()
+            .locale('ru')
+            .format('MMMM')
+            .toLowerCase()
+            .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
+        const nextMonth = moment()
+            .locale('ru')
+            .add(1, 'month')
+            .format('MMMM')
+            .toLowerCase()
+            .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
 
         const currentMonthEnglish = moment().locale('en').format('MMMM');
-        const nextMonthEnglish = moment().locale('en').add(1, 'month').format('MMMM');
+        const nextMonthEnglish = moment()
+            .locale('en')
+            .add(1, 'month')
+            .format('MMMM');
 
         const menuData = [
-            { text: currentMonth, callback: `app_select_month_${currentMonthEnglish}` },
-            { text: nextMonth, callback: `app_select_month_${nextMonthEnglish}` },
+            {
+                text: currentMonth,
+                callback: `app_select_month_${currentMonthEnglish}`,
+            },
+            {
+                text: nextMonth,
+                callback: `app_select_month_${nextMonthEnglish}`,
+            },
             { text: 'Назад', callback: 'menu_to_procedure_menu' },
         ];
 
-        const keyboard = Markup.inlineKeyboard(this.menuService.createMenu(menuData));
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData, 2)
+        );
         await this.ctx.editMessageText('Выберите месяц:', keyboard);
-    }
+        this.logger.info('Меню выбора месяца создано');
+    };
 
     /**
      * Создаёт меню выбора дня.
@@ -78,11 +119,11 @@ class MenuCallback {
      * месяц текущий, и с 1-го дня, если следующий.
      *
      */
-    async createDayMenu() {
+    createDayMenu = async () => {
         const selectedMonth = this.ctx.session.selectedMonth;
         const currentMonth = moment().locale('en').format('MMMM');
 
-        let startDate = moment().locale('ru');
+        let startDate = moment().add(1, 'day').locale('ru');
         if (selectedMonth !== currentMonth) {
             startDate.add(1, 'month');
             startDate.date(1);
@@ -91,30 +132,37 @@ class MenuCallback {
         const endDate = moment(startDate).endOf('month');
         const days = [];
 
-        // Получаем рабочие часы и длительность процедуры вне цикла
         const workingTime = await WorkingTime.findOne();
         const startTime = moment(workingTime.startTime, 'HH:mm');
         const endTime = moment(workingTime.endTime, 'HH:mm');
         const totalAvailableSlots = endTime.diff(startTime, 'hours');
 
         const selectedProcedure = this.ctx.session.selectedProcedure;
-        const procedure = await Procedure.findOne({ englishName: selectedProcedure });
+        const procedure = await Procedure.findOne({
+            englishName: selectedProcedure,
+        });
         const procedureDuration = procedure.duration;
 
         while (startDate.isBefore(endDate) || startDate.isSame(endDate)) {
             const day = startDate.date();
-            const dayString = this.formatService.capitalizeFirstLetter(startDate.locale('ru').format('dd, D MMM'));
+            const dayString = startDate
+                .locale('ru')
+                .format('dd, D MMM')
+                .toLowerCase()
+                .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
 
-            // Преобразование даты в формат "DD Month" для сравнения с данными в базе
             const formattedDate = startDate.locale('en').format('D MMMM');
 
-            // Проверяйте наличие записей на текущий день
             const occupiedTimes = await Record.find({ date: formattedDate });
 
-            // Проверяем, достаточно ли свободных слотов для процедуры
-            if (occupiedTimes.length <= totalAvailableSlots - procedureDuration) {
-                // Если доступных слотов больше, чем требуется для процедуры, добавляем день в меню
-                days.push({ text: dayString, callback: `app_select_day_${day}` });
+            if (
+                occupiedTimes.length <=
+                totalAvailableSlots - procedureDuration
+            ) {
+                days.push({
+                    text: dayString,
+                    callback: `app_select_day_${day}`,
+                });
             }
 
             startDate.add(1, 'day');
@@ -122,10 +170,10 @@ class MenuCallback {
 
         days.push({ text: 'Назад', callback: `menu_to_month_menu` });
 
-        this.menuService.setButtonsPerRow(3);
-        const keyboard = Markup.inlineKeyboard(this.menuService.createMenu(days));
+        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(days, 3));
         await this.ctx.editMessageText('Выберите день:', keyboard);
-    }
+        this.logger.info('Меню выбора дня создано');
+    };
 
     /**
      * Создаёт меню выбора времени.
@@ -133,19 +181,19 @@ class MenuCallback {
      * Выбор времени представляется кнопками с часами, соответствующими рабочим часам.
      *
      */
-    async createTimeMenu() {
-        const workingTime = await WorkingTime.findOne(); // получаем рабочие часы
+    createTimeMenu = async () => {
+        const workingTime = await WorkingTime.findOne();
         const selectedProcedure = this.ctx.session.selectedProcedure;
-        const procedure = await Procedure.findOne({ englishName: selectedProcedure });
+        const procedure = await Procedure.findOne({
+            englishName: selectedProcedure,
+        });
         const procedureDuration = procedure.duration;
 
         const selectedDate = this.ctx.session.selectedDate;
-        //получаем занятые часы для выбранной даты
         const occupiedTimes = await Record.find({
             date: selectedDate,
         }).select('time');
 
-        //  переводим в массив строк
         const occupiedTimeArray = occupiedTimes.map((record) => record.time);
 
         const params = {
@@ -154,8 +202,7 @@ class MenuCallback {
             occupiedTimes: occupiedTimeArray,
             procedureDuration: procedureDuration,
         };
-        const filterService = new FilterService();
-        const availableTimes = filterService.filterAvailableTimes(params);
+        const availableTimes = FilterService.filterAvailableTimes(params);
 
         const hours = [];
         for (const time of availableTimes) {
@@ -164,10 +211,12 @@ class MenuCallback {
 
         hours.push({ text: 'Назад', callback: `menu_to_day_menu` });
 
-        this.menuService.setButtonsPerRow(4);
-        const keyboard = Markup.inlineKeyboard(this.menuService.createMenu(hours));
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(hours, 4)
+        );
         await this.ctx.editMessageText('Выберите время:', keyboard);
-    }
+        this.logger.info('Меню выбора времени создано');
+    };
 
     /**
      * Создаёт меню подтверждения процедуры.
@@ -175,17 +224,19 @@ class MenuCallback {
      * Данные берутся из сессий.
      *
      */
-    async createConfirmationMenu() {
+    createConfirmationMenu = async () => {
         const selectedDate = this.ctx.session.selectedDate;
         const selectedTime = this.ctx.session.selectedTime;
         const selectedProcedureEnglishName = this.ctx.session.selectedProcedure;
 
-        //Формируем нужный формат даты
         const [day, month] = selectedDate.split(' ');
-        const formattedDate = `${day} ${moment(month, 'MMMM').locale('ru').format('MMM')}`;
+        const formattedDate = `${day} ${moment(month, 'MMMM')
+            .locale('ru')
+            .format('MMM')}`;
 
-        //Формируем нужный формат процедуры
-        const procedure = await Procedure.findOne({ englishName: selectedProcedureEnglishName });
+        const procedure = await Procedure.findOne({
+            englishName: selectedProcedureEnglishName,
+        });
         const selectedProcedure = procedure.russianName;
 
         const message = `Вы хотели бы записаться на ${formattedDate} в ${selectedTime}, Ваша процедура - ${selectedProcedure}?`;
@@ -195,10 +246,91 @@ class MenuCallback {
             { text: 'Назад', callback: 'menu_to_time_menu' },
         ];
 
-        const keyboard = Markup.inlineKeyboard(this.menuService.createMenu(buttons));
+        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(buttons));
 
         await this.ctx.editMessageText(message, keyboard);
-    }
+        this.logger.info('Меню подтверждения записи создано');
+    };
+
+    /**
+     * Создаёт меню с процедурами, на которые записан пользователь.
+     */
+    createCheckAppointmentsMenu = async () => {
+        const appointments = this.ctx.session.appointments;
+
+        if (!appointments || appointments.length === 0) {
+            await this.ctx.reply('У Вас нет записей на процедуры.');
+            return;
+        }
+
+        let message = 'Ваши записи на процедуры:\n\n';
+        for (const { procedure, date, time } of appointments) {
+            const [day, month] = date.split(' ');
+            const formattedDate = `${day} ${moment(month, 'MMMM')
+                .locale('ru')
+                .format('MMM')}`;
+
+            const procedureData = await Procedure.findOne({
+                englishName: procedure,
+            });
+            if (procedureData) {
+                message += `- ${procedureData.russianName} (${formattedDate} в ${time})\n`;
+            } else {
+                this.logger.error(
+                    `Процедура с английским названием ${procedure} не найдена в базе данных.`
+                );
+            }
+        }
+
+        const menuData = [{ text: 'Назад', callback: 'menu_to_main_menu' }];
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData)
+        );
+        await this.ctx.editMessageText(message, keyboard);
+    };
+
+    /**
+     * Создаёт меню для отмены записей пользователя.
+     */
+    createCancelAppointmentsMenu = async () => {
+        const appointments = this.ctx.session.appointments;
+
+        if (!appointments || appointments.length === 0) {
+            await this.ctx.reply('У Вас нет записей на процедуры.');
+            return;
+        }
+
+        let message = 'Выберите запись для отмены:\n\n';
+        const menuData = [];
+
+        for (const { procedure, date, time } of appointments) {
+            const [day, month] = date.split(' ');
+            const formattedDate = `${day} ${moment(month, 'MMMM')
+                .locale('ru')
+                .format('MMM')}`;
+
+            const procedureData = await Procedure.findOne({
+                englishName: procedure,
+            });
+            if (procedureData) {
+                const buttonText = `${procedureData.russianName} (${formattedDate} в ${time})`;
+                menuData.push({
+                    text: buttonText,
+                    callback: `app_cancel_${procedure}_${date}_${time}`,
+                });
+            } else {
+                this.logger.error(
+                    `Процедура с английским названием ${procedure} не найдена в базе данных.`
+                );
+            }
+        }
+
+        menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData, 1)
+        );
+        await this.ctx.editMessageText(message, keyboard);
+    };
 }
 
 module.exports = MenuCallback;

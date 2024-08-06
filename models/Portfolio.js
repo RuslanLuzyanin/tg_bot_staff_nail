@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const { Schema, model } = require('mongoose');
 
-const portfolioSchema = new mongoose.Schema({
+const portfolioSchema = new Schema({
     imageUrl: { type: String, required: true },
     procedure: { type: String, required: true, ref: 'procedures' },
 });
 
-const Portfolio = mongoose.model('Portfolio', portfolioSchema);
+const Portfolio = model('Portfolio', portfolioSchema);
 
 module.exports = Portfolio;

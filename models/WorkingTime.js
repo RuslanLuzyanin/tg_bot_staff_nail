@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const { Schema, model } = require('mongoose');
 
-const workingTimeSchema = new mongoose.Schema({
+const workingTimeSchema = new Schema({
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },
 });
 
-const WorkingTime = mongoose.model('WorkingTime', workingTimeSchema);
+const WorkingTime = model('WorkingTime', workingTimeSchema);
 
 module.exports = WorkingTime;
