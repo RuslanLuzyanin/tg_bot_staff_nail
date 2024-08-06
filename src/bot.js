@@ -9,10 +9,13 @@ const CallbackHandler = require('./callbacks/CallbackHandler');
 const UserCallback = require('./callbacks/UserCallback');
 const AppointmentCallback = require('./callbacks/AppointmentCallback');
 const MenuCallback = require('./callbacks/MenuCallback');
+const ReminderService = require('./services/ReminderService');
+const CleanUpService = require('./services/CleanUpService');
 const User = require('../models/User');
 const Log = require('../lib/Log');
 const config = require('../config/Config');
 const mongoose = require('mongoose');
+const cron = require('node-cron');
 
 class TelegramBot {
     constructor() {
@@ -26,7 +29,10 @@ class TelegramBot {
             await this.setupSessionMiddleware();
             await this.registerCommandHandlers();
             await this.registerCallbackQueryHandler();
+            await this.cleanupOldRecords();
             await this.launchBot();
+            await this.scheduleReminders();
+            await this.scheduleCleanUp();
         } catch (error) {
             this.logger.error('Ошибка при запуске бота:', error);
         }
@@ -86,6 +92,25 @@ class TelegramBot {
     async launchBot() {
         this.bot.launch();
         this.logger.info('Бот запущен');
+    }
+
+    async cleanupOldRecords() {
+        await CleanUpService.cleanupOldRecords();
+        this.logger.info('Устаревшие записи очищены');
+    }
+
+    async scheduleReminders() {
+        cron.schedule('0 10 * * *', async () => {
+            await ReminderService.sendReminders(this.bot);
+            this.logger.info('Уведомления отправлены');
+        });
+    }
+
+    async scheduleCleanUp() {
+        cron.schedule('0 10 * * *', async () => {
+            await CleanUpService.cleanupOldRecords();
+            this.logger.info('Устаревшие записи очищены');
+        });
     }
 
     async stop() {
