@@ -1,3 +1,5 @@
+const moment = require('moment');
+
 class FilterService {
     /**
      * Фильтрует список доступных временных интервалов, удаляя занятые слоты и разбивая доступные на отрезки.
@@ -10,34 +12,50 @@ class FilterService {
      */
     static filterAvailableTimes(params) {
         const { startTime, endTime, occupiedTimes, procedureDuration } = params;
-        // Разбиваем начало и конец работы на часы
-        const startHour = parseInt(startTime.split(':')[0]);
-        const endHour = parseInt(endTime.split(':')[0]);
+        const occupiedTimesMap = new Map(
+            occupiedTimes.map((time) => [time, true])
+        );
+        const availableTimes = this.generateAvailableTimes(
+            startTime,
+            endTime,
+            occupiedTimesMap
+        );
+        return this.chunkAvailableTimes(availableTimes, procedureDuration);
+    }
 
-        // Формируем список доступных часов
-        const availableTimes = [];
-        for (let hour = startHour; hour <= endHour; hour++) {
-            const timeString = `${hour.toString().padStart(2, '0')}:00`;
-            if (!occupiedTimes.includes(timeString)) {
-                availableTimes.push(timeString);
+    static *generateAvailableTimes(startTime, endTime, occupiedTimesMap) {
+        const start = moment(startTime, 'HH:mm');
+        const end = moment(endTime, 'HH:mm');
+
+        while (start.isBefore(end)) {
+            const timeString = start.format('HH:mm');
+            if (!occupiedTimesMap.get(timeString)) {
+                yield timeString;
             }
+            start.add(1, 'hour');
         }
+    }
 
-        // Разбиваем список доступных часов на отрезки, соответствующие длительности процедуры
+    static chunkAvailableTimes(availableTimes, procedureDuration) {
+        const sortedTimes = [...availableTimes].sort();
         const result = [];
-        for (let i = 0; i < availableTimes.length; i++) {
-            if (i + procedureDuration - 1 < availableTimes.length) {
+
+        for (let i = 0; i < sortedTimes.length; i++) {
+            if (i + procedureDuration - 1 < sortedTimes.length) {
                 let isConsecutive = true;
                 for (let j = 1; j < procedureDuration; j++) {
-                    const nextTimeParts = availableTimes[i + j].split(':');
+                    const nextTimeParts = sortedTimes[i + j].split(':');
                     const nextHours = parseInt(nextTimeParts[0], 10);
-                    if (nextHours !== parseInt(availableTimes[i].split(':')[0], 10) + j) {
+                    if (
+                        nextHours !==
+                        parseInt(sortedTimes[i].split(':')[0], 10) + j
+                    ) {
                         isConsecutive = false;
                         break;
                     }
                 }
                 if (isConsecutive) {
-                    result.push(availableTimes[i]);
+                    result.push(sortedTimes[i]);
                 }
             }
         }

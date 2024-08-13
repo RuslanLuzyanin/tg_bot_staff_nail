@@ -18,11 +18,9 @@ class AppointmentCallback {
      * Извлекает имя процедуры из callbackData и сохраняет его в сессию.
      */
     handleSelectProcedure = async () => {
-        const procedureName = this.ctx.callbackQuery.data
-            .split('_')
-            .slice(3)
-            .join('_');
-        this.ctx.session.selectedProcedure = procedureName;
+        const { callbackQuery, session } = this.ctx;
+        const procedureName = callbackQuery.data.split('_').slice(3).join('_');
+        session.selectedProcedure = procedureName;
         this.logger.info(`Процедура "${procedureName}" выбрана`);
     };
 
@@ -31,8 +29,9 @@ class AppointmentCallback {
      * Извлекает имя месяца из callbackData и сохраняет его в сессию.
      */
     handleSelectMonth = async () => {
-        const month = this.ctx.callbackQuery.data.split('_').slice(3).join('_');
-        this.ctx.session.selectedMonth = month;
+        const { callbackQuery, session } = this.ctx;
+        const month = callbackQuery.data.split('_').slice(3).join('_');
+        session.selectedMonth = month;
         this.logger.info(`Месяц "${month}" выбран`);
     };
 
@@ -41,10 +40,10 @@ class AppointmentCallback {
      * Извлекает имя дня из callbackData и сохраняет его в сессию.
      */
     handleSelectDay = async () => {
-        const day = this.ctx.callbackQuery.data.split('_').slice(3).join('_');
-        const month = this.ctx.session.selectedMonth;
-        this.ctx.session.selectedDate = `${day} ${month}`;
-        this.logger.info(`Дата "${this.ctx.session.selectedDate}" выбрана`);
+        const { callbackQuery, session } = this.ctx;
+        const day = callbackQuery.data.split('_').slice(3).join('_');
+        session.selectedDate = `${day} ${session.selectedMonth}`;
+        this.logger.info(`Дата "${session.selectedDate}" выбрана`);
     };
 
     /**
@@ -52,12 +51,9 @@ class AppointmentCallback {
      * Извлекает время из callbackData и сохраняет его в сессию.
      */
     handleSelectTime = async () => {
-        const timeString = this.ctx.callbackQuery.data
-            .split('_')
-            .slice(3)
-            .join('_');
-        this.ctx.session.selectedTime = timeString;
-        this.logger.info(`Время "${timeString}" выбрано`);
+        const { callbackQuery, session } = this.ctx;
+        session.selectedTime = callbackQuery.data.split('_').slice(3).join('_');
+        this.logger.info(`Время "${session.selectedTime}" выбрано`);
     };
 
     /**
@@ -65,10 +61,13 @@ class AppointmentCallback {
      * Извлекает данные из сессии, сохраняет запись в базу данных.
      */
     handleConfirm = async () => {
-        const userId = this.ctx.from.id.toString();
-        const selectedDate = this.ctx.session.selectedDate;
-        const selectedTime = this.ctx.session.selectedTime;
-        const selectedProcedureEnglishName = this.ctx.session.selectedProcedure;
+        const { from, session } = this.ctx;
+        const userId = from.id.toString();
+        const {
+            selectedDate,
+            selectedTime,
+            selectedProcedure: selectedProcedureEnglishName,
+        } = session;
 
         const [day, month] = selectedDate.split(' ');
         const formattedDate = `${day} ${moment(month, 'MMMM')
@@ -107,7 +106,8 @@ class AppointmentCallback {
      * Загружает записи пользователя из базы данных в сессию.
      */
     handleGetAppointments = async () => {
-        const userId = this.ctx.from.id.toString();
+        const { from, session } = this.ctx;
+        const userId = from.id.toString();
         const records = await Record.find({ userId }).sort({
             date: 1,
             time: 1,
@@ -132,7 +132,7 @@ class AppointmentCallback {
                 time: record.time,
             });
         }
-        this.ctx.session.appointments = appointments;
+        session.appointments = appointments;
         this.logger.info(
             `Получены записи пользователя ${userId}: ${appointments
                 .map((a) => `${a.procedure} (${a.date} ${a.time})`)
@@ -144,8 +144,10 @@ class AppointmentCallback {
      * Обрабатывает отмену записи на процедуру.
      */
     handleCancel = async () => {
-        const callbackData = this.ctx.callbackQuery.data;
-        const [, , procedure, date, time] = callbackData.slice(1).split('_');
+        const { callbackQuery, from } = this.ctx;
+        const [, , procedure, date, time] = callbackQuery.data
+            .slice(1)
+            .split('_');
         const procedureData = await Procedure.findOne({
             englishName: procedure,
         });
@@ -155,13 +157,13 @@ class AppointmentCallback {
             );
             return;
         }
-        const procedureDuration = procedureData.duration;
+        const { duration: procedureDuration } = procedureData;
 
         const [day, month] = date.split(' ');
         const formattedDate = `${day} ${moment(month, 'MMMM')
             .locale('en')
             .format('MMMM')}`;
-        const userId = this.ctx.from.id.toString();
+        const userId = from.id.toString();
 
         const recordToDelete = await Record.findOneAndDelete({
             userId,

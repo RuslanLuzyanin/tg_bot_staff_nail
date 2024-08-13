@@ -43,7 +43,7 @@ class MenuCallback {
      * Если у пользователя уже есть 3 записи, выводит сообщение и не создает меню.
      */
     createProcedureMenu = async () => {
-        const appointments = this.ctx.session.appointments;
+        const { appointments } = this.ctx.session;
         if (appointments.length >= 3) {
             await this.ctx.reply(
                 'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись.'
@@ -120,7 +120,7 @@ class MenuCallback {
      *
      */
     createDayMenu = async () => {
-        const selectedMonth = this.ctx.session.selectedMonth;
+        const { selectedMonth } = this.ctx.session;
         const currentMonth = moment().locale('en').format('MMMM');
 
         let startDate = moment().add(1, 'day').locale('ru');
@@ -130,18 +130,20 @@ class MenuCallback {
         }
 
         const endDate = moment(startDate).endOf('month');
-        const days = [];
+        const menuData = [];
 
         const workingTime = await WorkingTime.findOne();
-        const startTime = moment(workingTime.startTime, 'HH:mm');
-        const endTime = moment(workingTime.endTime, 'HH:mm');
-        const totalAvailableSlots = endTime.diff(startTime, 'hours');
+        const { startTime, endTime } = workingTime;
+        const totalAvailableSlots = moment(endTime, 'HH:mm').diff(
+            moment(startTime, 'HH:mm'),
+            'hours'
+        );
 
-        const selectedProcedure = this.ctx.session.selectedProcedure;
+        const { selectedProcedure } = this.ctx.session;
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
         });
-        const procedureDuration = procedure.duration;
+        const { duration: procedureDuration } = procedure;
 
         while (startDate.isBefore(endDate) || startDate.isSame(endDate)) {
             const day = startDate.date();
@@ -152,14 +154,13 @@ class MenuCallback {
                 .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
 
             const formattedDate = startDate.locale('en').format('D MMMM');
-
             const occupiedTimes = await Record.find({ date: formattedDate });
 
             if (
                 occupiedTimes.length <=
                 totalAvailableSlots - procedureDuration
             ) {
-                days.push({
+                menuData.push({
                     text: dayString,
                     callback: `app_select_day_${day}`,
                 });
@@ -168,9 +169,11 @@ class MenuCallback {
             startDate.add(1, 'day');
         }
 
-        days.push({ text: 'Назад', callback: `menu_to_month_menu` });
+        menuData.push({ text: 'Назад', callback: `menu_to_month_menu` });
 
-        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(days, 3));
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData, 3)
+        );
         await this.ctx.editMessageText('Выберите день:', keyboard);
         this.logger.info('Меню выбора дня создано');
     };
@@ -182,37 +185,35 @@ class MenuCallback {
      *
      */
     createTimeMenu = async () => {
+        const { selectedProcedure, selectedDate } = this.ctx.session;
         const workingTime = await WorkingTime.findOne();
-        const selectedProcedure = this.ctx.session.selectedProcedure;
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
         });
-        const procedureDuration = procedure.duration;
+        const { duration: procedureDuration } = procedure;
 
-        const selectedDate = this.ctx.session.selectedDate;
-        const occupiedTimes = await Record.find({
-            date: selectedDate,
-        }).select('time');
-
-        const occupiedTimeArray = occupiedTimes.map((record) => record.time);
+        const occupiedTimes = await Record.find({ date: selectedDate }).select(
+            'time'
+        );
+        const occupiedTimeArray = occupiedTimes.map(({ time }) => time);
 
         const params = {
             startTime: workingTime.startTime,
             endTime: workingTime.endTime,
             occupiedTimes: occupiedTimeArray,
-            procedureDuration: procedureDuration,
+            procedureDuration,
         };
         const availableTimes = FilterService.filterAvailableTimes(params);
 
-        const hours = [];
-        for (const time of availableTimes) {
-            hours.push({ text: time, callback: `app_select_time_${time}` });
-        }
+        const menuData = availableTimes.map((time) => ({
+            text: time,
+            callback: `app_select_time_${time}`,
+        }));
 
-        hours.push({ text: 'Назад', callback: `menu_to_day_menu` });
+        menuData.push({ text: 'Назад', callback: `menu_to_day_menu` });
 
         const keyboard = Markup.inlineKeyboard(
-            MenuService.createMenu(hours, 4)
+            MenuService.createMenu(menuData, 4)
         );
         await this.ctx.editMessageText('Выберите время:', keyboard);
         this.logger.info('Меню выбора времени создано');
@@ -225,9 +226,11 @@ class MenuCallback {
      *
      */
     createConfirmationMenu = async () => {
-        const selectedDate = this.ctx.session.selectedDate;
-        const selectedTime = this.ctx.session.selectedTime;
-        const selectedProcedureEnglishName = this.ctx.session.selectedProcedure;
+        const {
+            selectedDate,
+            selectedTime,
+            selectedProcedure: selectedProcedureEnglishName,
+        } = this.ctx.session;
 
         const [day, month] = selectedDate.split(' ');
         const formattedDate = `${day} ${moment(month, 'MMMM')
@@ -241,12 +244,14 @@ class MenuCallback {
 
         const message = `Вы хотели бы записаться на ${formattedDate} в ${selectedTime}, Ваша процедура - ${selectedProcedure}?`;
 
-        const buttons = [
+        const menuData = [
             { text: 'Подтвердить', callback: 'app_confirm' },
             { text: 'Назад', callback: 'menu_to_time_menu' },
         ];
 
-        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(buttons));
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData)
+        );
 
         await this.ctx.editMessageText(message, keyboard);
         this.logger.info('Меню подтверждения записи создано');
@@ -256,7 +261,7 @@ class MenuCallback {
      * Создаёт меню с процедурами, на которые записан пользователь.
      */
     createCheckAppointmentsMenu = async () => {
-        const appointments = this.ctx.session.appointments;
+        const { appointments } = this.ctx.session;
 
         if (!appointments || appointments.length === 0) {
             await this.ctx.reply('У Вас нет записей на процедуры.');
@@ -293,7 +298,7 @@ class MenuCallback {
      * Создаёт меню для отмены записей пользователя.
      */
     createCancelAppointmentsMenu = async () => {
-        const appointments = this.ctx.session.appointments;
+        const { appointments } = this.ctx.session;
 
         if (!appointments || appointments.length === 0) {
             await this.ctx.reply('У Вас нет записей на процедуры.');
@@ -324,7 +329,6 @@ class MenuCallback {
                 );
             }
         }
-
         menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
         const keyboard = Markup.inlineKeyboard(
             MenuService.createMenu(menuData, 1)

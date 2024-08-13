@@ -23,6 +23,9 @@ class TelegramBot {
         this.logger = new Log();
     }
 
+    /**
+     * Запускает бота и выполняет необходимые инициализационные действия.
+     */
     async start() {
         try {
             await this.connectToMongoDB();
@@ -38,6 +41,9 @@ class TelegramBot {
         }
     }
 
+    /**
+     * Устанавливает соединение с MongoDB.
+     */
     async connectToMongoDB() {
         await mongoose.connect(config.uri);
         this.logger.info('Подключение к MongoDB успешно установлено');
@@ -46,12 +52,18 @@ class TelegramBot {
         this.logger.info('Соединение с MongoDB установлено');
     }
 
+    /**
+     * Настраивает middleware для хранения сессий в MongoDB.
+     */
     async setupSessionMiddleware() {
         const db = (await MongoClient.connect(config.uri)).db();
         this.bot.use(session(db, { collectionName: 'sessions' }));
         this.logger.info('Middleware сессий установлен');
     }
 
+    /**
+     * Регистрирует обработчики команд бота.
+     */
     async registerCommandHandlers() {
         const commands = [
             StartCommand,
@@ -77,6 +89,9 @@ class TelegramBot {
         });
     }
 
+    /**
+     * Регистрирует обработчик callback-запросов.
+     */
     async registerCallbackQueryHandler() {
         this.bot.on('callback_query', async (ctx) => {
             const callbackHandler = new CallbackHandler(
@@ -89,16 +104,25 @@ class TelegramBot {
         });
     }
 
+    /**
+     * Запускает бота.
+     */
     async launchBot() {
         this.bot.launch();
         this.logger.info('Бот запущен');
     }
 
+    /**
+     * Удаляет устаревшие записи из базы данных.
+     */
     async cleanupOldRecords() {
         await CleanUpService.cleanupOldRecords();
         this.logger.info('Устаревшие записи очищены');
     }
 
+    /**
+     * Планирует отправку напоминаний пользователям.
+     */
     async scheduleReminders() {
         cron.schedule('0 10 * * *', async () => {
             await ReminderService.sendReminders(this.bot);
@@ -106,6 +130,9 @@ class TelegramBot {
         });
     }
 
+    /**
+     * Планирует удаление устаревших записей.
+     */
     async scheduleCleanUp() {
         cron.schedule('0 10 * * *', async () => {
             await CleanUpService.cleanupOldRecords();
@@ -113,29 +140,39 @@ class TelegramBot {
         });
     }
 
+    /**
+     * Останавливает бота и выполняет необходимые действия при остановке.
+     */
     async stop() {
         try {
-            const users = await User.find();
-            for (const user of users) {
-                try {
-                    await this.bot.telegram.sendMessage(
-                        user.chatId,
-                        'Бот временно недоступен.'
-                    );
-                    this.logger.info(
-                        `Уведомление отправлено пользователю ${user.id}`
-                    );
-                } catch (error) {
-                    this.logger.error(
-                        `Ошибка при отправке уведомления пользователю ${user.id}:`,
-                        error
-                    );
-                }
-            }
+            await this.sendStopNotifications();
             await this.bot.stop();
             this.logger.info('Бот остановлен');
         } catch (error) {
             this.logger.error('Ошибка при остановке бота:', error);
+        }
+    }
+
+    /**
+     * Отправляет уведомление пользователям о временной недоступности бота.
+     */
+    async sendStopNotifications() {
+        const users = await User.find();
+        for (const user of users) {
+            try {
+                await this.bot.telegram.sendMessage(
+                    user.chatId,
+                    'Бот временно недоступен.'
+                );
+                this.logger.info(
+                    `Уведомление отправлено пользователю ${user.id}`
+                );
+            } catch (error) {
+                this.logger.error(
+                    `Ошибка при отправке уведомления пользователю ${user.id}:`,
+                    error
+                );
+            }
         }
     }
 }

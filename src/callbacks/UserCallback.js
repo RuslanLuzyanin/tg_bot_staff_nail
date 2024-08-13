@@ -18,9 +18,8 @@ class UserCallback {
      * @param {object} ctx - Контекст телеграф.
      */
     handleVerification = async () => {
-        const userId = this.ctx.from.id.toString();
-        const userName = this.ctx.from.first_name;
-        const chatId = this.ctx.chat.id.toString();
+        const { id: userId, first_name: userName } = this.ctx.from;
+        const { id: chatId } = this.ctx.chat;
 
         let user = await User.findOne({ id: userId });
 
