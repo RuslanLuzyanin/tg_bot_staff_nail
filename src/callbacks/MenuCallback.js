@@ -22,7 +22,7 @@ class MenuCallback {
      *
      * Возвращает пользователя в главное меню.
      */
-    createMainMenu = async () => {
+    async createMainMenu() {
         const menuData = [
             { text: 'Запись на приём', callback: 'menu_to_procedure_menu' },
             { text: 'Отменить запись', callback: 'menu_to_cancel_appointment' },
@@ -33,8 +33,8 @@ class MenuCallback {
             MenuService.createMenu(menuData)
         );
         await this.ctx.editMessageText('Главное меню:', keyboard);
-        this.logger.info('Главное меню создано');
-    };
+        this.logger.debug('Главное меню создано');
+    }
 
     /**
      * Обрабатывает колбек "Записаться на приём".
@@ -42,7 +42,7 @@ class MenuCallback {
      * Запрашивает у пользователя выбор процедуры из базы данных.
      * Если у пользователя уже есть 3 записи, выводит сообщение и не создает меню.
      */
-    createProcedureMenu = async () => {
+    async createProcedureMenu() {
         const { appointments } = this.ctx.session;
         if (appointments.length >= 3) {
             await this.ctx.reply(
@@ -66,15 +66,15 @@ class MenuCallback {
             MenuService.createMenu(menuData)
         );
         await this.ctx.editMessageText('Выберите процедуру:', keyboard);
-        this.logger.info('Меню выбора процедуры создано');
-    };
+        this.logger.debug('Меню выбора процедуры создано');
+    }
 
     /**
      * Создаёт меню выбора месяца.
      *
      * Выбор месяца представляется из 2-ух (текущий и следующий).
      */
-    createMonthMenu = async () => {
+    async createMonthMenu() {
         const currentMonth = moment()
             .locale('ru')
             .format('MMMM')
@@ -109,8 +109,8 @@ class MenuCallback {
             MenuService.createMenu(menuData, 2)
         );
         await this.ctx.editMessageText('Выберите месяц:', keyboard);
-        this.logger.info('Меню выбора месяца создано');
-    };
+        this.logger.debug('Меню выбора месяца создано');
+    }
 
     /**
      * Создаёт меню выбора дня.
@@ -119,7 +119,7 @@ class MenuCallback {
      * месяц текущий, и с 1-го дня, если следующий.
      *
      */
-    createDayMenu = async () => {
+    async createDayMenu() {
         const { selectedMonth } = this.ctx.session;
         const currentMonth = moment().locale('en').format('MMMM');
 
@@ -175,8 +175,8 @@ class MenuCallback {
             MenuService.createMenu(menuData, 3)
         );
         await this.ctx.editMessageText('Выберите день:', keyboard);
-        this.logger.info('Меню выбора дня создано');
-    };
+        this.logger.debug('Меню выбора дня создано');
+    }
 
     /**
      * Создаёт меню выбора времени.
@@ -184,7 +184,7 @@ class MenuCallback {
      * Выбор времени представляется кнопками с часами, соответствующими рабочим часам.
      *
      */
-    createTimeMenu = async () => {
+    async createTimeMenu() {
         const { selectedProcedure, selectedDate } = this.ctx.session;
         const workingTime = await WorkingTime.findOne();
         const procedure = await Procedure.findOne({
@@ -216,8 +216,8 @@ class MenuCallback {
             MenuService.createMenu(menuData, 4)
         );
         await this.ctx.editMessageText('Выберите время:', keyboard);
-        this.logger.info('Меню выбора времени создано');
-    };
+        this.logger.debug('Меню выбора времени создано');
+    }
 
     /**
      * Создаёт меню подтверждения процедуры.
@@ -225,7 +225,7 @@ class MenuCallback {
      * Данные берутся из сессий.
      *
      */
-    createConfirmationMenu = async () => {
+    async createConfirmationMenu() {
         const {
             selectedDate,
             selectedTime,
@@ -254,19 +254,27 @@ class MenuCallback {
         );
 
         await this.ctx.editMessageText(message, keyboard);
-        this.logger.info('Меню подтверждения записи создано');
-    };
+        this.logger.debug('Меню подтверждения записи создано');
+    }
 
     /**
      * Создаёт меню с процедурами, на которые записан пользователь.
      */
-    createCheckAppointmentsMenu = async () => {
+    async createCheckAppointmentsMenu() {
         const { appointments } = this.ctx.session;
 
         if (!appointments || appointments.length === 0) {
             await this.ctx.reply('У Вас нет записей на процедуры.');
             return;
         }
+
+        const procedures = await Procedure.find(
+            {},
+            { englishName: 1, russianName: 1 }
+        );
+        const procedureMap = new Map(
+            procedures.map((p) => [p.englishName, p.russianName])
+        );
 
         let message = 'Ваши записи на процедуры:\n\n';
         for (const { procedure, date, time } of appointments) {
@@ -275,16 +283,9 @@ class MenuCallback {
                 .locale('ru')
                 .format('MMM')}`;
 
-            const procedureData = await Procedure.findOne({
-                englishName: procedure,
-            });
-            if (procedureData) {
-                message += `- ${procedureData.russianName} (${formattedDate} в ${time})\n`;
-            } else {
-                this.logger.error(
-                    `Процедура с английским названием ${procedure} не найдена в базе данных.`
-                );
-            }
+            message += `- ${procedureMap.get(
+                procedure
+            )} (${formattedDate} в ${time})\n`;
         }
 
         const menuData = [{ text: 'Назад', callback: 'menu_to_main_menu' }];
@@ -292,18 +293,28 @@ class MenuCallback {
             MenuService.createMenu(menuData)
         );
         await this.ctx.editMessageText(message, keyboard);
-    };
+        this.logger.debug(
+            'Меню с процедурами, на которые записан пользователь создано'
+        );
+    }
 
     /**
      * Создаёт меню для отмены записей пользователя.
      */
-    createCancelAppointmentsMenu = async () => {
+    async createCancelAppointmentsMenu() {
         const { appointments } = this.ctx.session;
 
         if (!appointments || appointments.length === 0) {
             await this.ctx.reply('У Вас нет записей на процедуры.');
             return;
         }
+        const procedures = await Procedure.find(
+            {},
+            { englishName: 1, russianName: 1 }
+        );
+        const procedureMap = new Map(
+            procedures.map((p) => [p.englishName, p.russianName])
+        );
 
         let message = 'Выберите запись для отмены:\n\n';
         const menuData = [];
@@ -314,27 +325,21 @@ class MenuCallback {
                 .locale('ru')
                 .format('MMM')}`;
 
-            const procedureData = await Procedure.findOne({
-                englishName: procedure,
+            const buttonText = `${procedureMap.get(
+                procedure
+            )} (${formattedDate} в ${time})`;
+            menuData.push({
+                text: buttonText,
+                callback: `app_cancel_${procedure}_${date}_${time}`,
             });
-            if (procedureData) {
-                const buttonText = `${procedureData.russianName} (${formattedDate} в ${time})`;
-                menuData.push({
-                    text: buttonText,
-                    callback: `app_cancel_${procedure}_${date}_${time}`,
-                });
-            } else {
-                this.logger.error(
-                    `Процедура с английским названием ${procedure} не найдена в базе данных.`
-                );
-            }
         }
         menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
         const keyboard = Markup.inlineKeyboard(
             MenuService.createMenu(menuData, 1)
         );
         await this.ctx.editMessageText(message, keyboard);
-    };
+        this.logger.debug('Меню для отмены записей пользователя создано');
+    }
 }
 
 module.exports = MenuCallback;

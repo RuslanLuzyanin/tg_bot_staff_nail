@@ -1,3 +1,5 @@
+const Portfolio = require('../../models/Portfolio');
+
 /**
  * Класс, обрабатывающий команду /portfolio.
  */

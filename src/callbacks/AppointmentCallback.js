@@ -17,50 +17,50 @@ class AppointmentCallback {
      * Обрабатывает колбек выбора процедуры.
      * Извлекает имя процедуры из callbackData и сохраняет его в сессию.
      */
-    handleSelectProcedure = async () => {
+    async handleSelectProcedure() {
         const { callbackQuery, session } = this.ctx;
         const procedureName = callbackQuery.data.split('_').slice(3).join('_');
         session.selectedProcedure = procedureName;
-        this.logger.info(`Процедура "${procedureName}" выбрана`);
-    };
+        this.logger.debug(`Процедура "${procedureName}" выбрана`);
+    }
 
     /**
      * Обрабатывает колбек выбора месяца.
      * Извлекает имя месяца из callbackData и сохраняет его в сессию.
      */
-    handleSelectMonth = async () => {
+    async handleSelectMonth() {
         const { callbackQuery, session } = this.ctx;
         const month = callbackQuery.data.split('_').slice(3).join('_');
         session.selectedMonth = month;
-        this.logger.info(`Месяц "${month}" выбран`);
-    };
+        this.logger.debug(`Месяц "${month}" выбран`);
+    }
 
     /**
      * Обрабатывает колбек выбора дня.
      * Извлекает имя дня из callbackData и сохраняет его в сессию.
      */
-    handleSelectDay = async () => {
+    async handleSelectDay() {
         const { callbackQuery, session } = this.ctx;
         const day = callbackQuery.data.split('_').slice(3).join('_');
         session.selectedDate = `${day} ${session.selectedMonth}`;
-        this.logger.info(`Дата "${session.selectedDate}" выбрана`);
-    };
+        this.logger.debug(`Дата "${session.selectedDate}" выбрана`);
+    }
 
     /**
      * Обрабатывает колбек выбора времени.
      * Извлекает время из callbackData и сохраняет его в сессию.
      */
-    handleSelectTime = async () => {
+    async handleSelectTime() {
         const { callbackQuery, session } = this.ctx;
         session.selectedTime = callbackQuery.data.split('_').slice(3).join('_');
-        this.logger.info(`Время "${session.selectedTime}" выбрано`);
-    };
+        this.logger.debug(`Время "${session.selectedTime}" выбрано`);
+    }
 
     /**
      * Обрабатывает подтверждение записи на процедуру.
      * Извлекает данные из сессии, сохраняет запись в базу данных.
      */
-    handleConfirm = async () => {
+    async handleConfirm() {
         const { from, session } = this.ctx;
         const userId = from.id.toString();
         const {
@@ -100,12 +100,12 @@ class AppointmentCallback {
                 `Запись на процедуру "${selectedProcedure}" в ${recordTime} сохранена`
             );
         }
-    };
+    }
 
     /**
      * Загружает записи пользователя из базы данных в сессию.
      */
-    handleGetAppointments = async () => {
+    async handleGetAppointments() {
         const { from, session } = this.ctx;
         const userId = from.id.toString();
         const records = await Record.find({ userId }).sort({
@@ -133,17 +133,17 @@ class AppointmentCallback {
             });
         }
         session.appointments = appointments;
-        this.logger.info(
+        this.logger.debug(
             `Получены записи пользователя ${userId}: ${appointments
                 .map((a) => `${a.procedure} (${a.date} ${a.time})`)
                 .join(', ')}`
         );
-    };
+    }
 
     /**
      * Обрабатывает отмену записи на процедуру.
      */
-    handleCancel = async () => {
+    async handleCancel() {
         const { callbackQuery, from } = this.ctx;
         const [, , procedure, date, time] = callbackQuery.data
             .slice(1)
@@ -151,12 +151,6 @@ class AppointmentCallback {
         const procedureData = await Procedure.findOne({
             englishName: procedure,
         });
-        if (!procedureData) {
-            this.logger.error(
-                `Процедура с английским названием ${procedure} не найдена в базе данных.`
-            );
-            return;
-        }
         const { duration: procedureDuration } = procedureData;
 
         const [day, month] = date.split(' ');
@@ -196,7 +190,7 @@ class AppointmentCallback {
         }
 
         await this.ctx.reply('Ваша запись успешно отменена.');
-    };
+    }
 }
 
 module.exports = AppointmentCallback;

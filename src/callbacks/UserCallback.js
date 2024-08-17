@@ -1,5 +1,4 @@
 const User = require('../../models/User');
-const moment = require('moment');
 
 class UserCallback {
     /**
@@ -17,7 +16,7 @@ class UserCallback {
      * Сохраняет или обновляет информацию о пользователе в базе данных.
      * @param {object} ctx - Контекст телеграф.
      */
-    handleVerification = async () => {
+    async handleVerification() {
         const { id: userId, first_name: userName } = this.ctx.from;
         const { id: chatId } = this.ctx.chat;
 
@@ -32,10 +31,10 @@ class UserCallback {
             await user.save();
         }
 
-        this.logger.info(
+        this.logger.debug(
             'Информация о пользователе успешно сохранена в базу данных'
         );
-    };
+    }
 }
 
 module.exports = UserCallback;

@@ -13,6 +13,7 @@ const ReminderService = require('./services/ReminderService');
 const CleanUpService = require('./services/CleanUpService');
 const User = require('../models/User');
 const Log = require('../lib/Log');
+const ErrorHandler = require('../lib/ErrorHandler');
 const config = require('../config/Config');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
@@ -21,6 +22,7 @@ class TelegramBot {
     constructor() {
         this.bot = new Telegraf(config.telegramToken);
         this.logger = new Log();
+        ErrorHandler.setLogger(this.logger);
     }
 
     /**
@@ -32,12 +34,13 @@ class TelegramBot {
             await this.setupSessionMiddleware();
             await this.registerCommandHandlers();
             await this.registerCallbackQueryHandler();
+            await this.registerMessageHandler();
             await this.cleanupOldRecords();
             await this.launchBot();
             await this.scheduleReminders();
             await this.scheduleCleanUp();
         } catch (error) {
-            this.logger.error('Ошибка при запуске бота:', error);
+            ErrorHandler.handleError(error, this.ctx);
         }
     }
 
@@ -45,20 +48,28 @@ class TelegramBot {
      * Устанавливает соединение с MongoDB.
      */
     async connectToMongoDB() {
-        await mongoose.connect(config.uri);
-        this.logger.info('Подключение к MongoDB успешно установлено');
+        try {
+            await mongoose.connect(config.uri);
+            this.logger.info('Подключение к MongoDB успешно установлено');
 
-        const client = await MongoClient.connect(config.uri);
-        this.logger.info('Соединение с MongoDB установлено');
+            const client = await MongoClient.connect(config.uri);
+            this.logger.info('Соединение с MongoDB установлено');
+        } catch (error) {
+            throw { code: 'mongoDbConnectionError', error };
+        }
     }
 
     /**
      * Настраивает middleware для хранения сессий в MongoDB.
      */
     async setupSessionMiddleware() {
-        const db = (await MongoClient.connect(config.uri)).db();
-        this.bot.use(session(db, { collectionName: 'sessions' }));
-        this.logger.info('Middleware сессий установлен');
+        try {
+            const db = (await MongoClient.connect(config.uri)).db();
+            this.bot.use(session(db, { collectionName: 'sessions' }));
+            this.logger.info('Middleware сессий установлен');
+        } catch (error) {
+            throw { code: 'sessionMiddlewareSetupError', error };
+        }
     }
 
     /**
@@ -72,72 +83,123 @@ class TelegramBot {
             ContactCommand,
         ];
 
-        commands.forEach((Command) => {
-            this.bot.command(Command.name, async (ctx) => {
-                try {
-                    await new Command(ctx).handle();
-                } catch (error) {
-                    this.logger.error(
-                        `Ошибка при обработке команды "${Command.name}":`,
-                        error
-                    );
-                    await ctx.reply(
-                        'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.'
-                    );
-                }
-            });
-        });
+        for (const Command of commands) {
+            try {
+                this.bot.command(Command.name, async (ctx) => {
+                    try {
+                        await new Command(ctx).handle();
+                    } catch (error) {
+                        ErrorHandler.handleError(
+                            { code: 'commandExecutionError', error },
+                            ctx
+                        );
+                    }
+                });
+            } catch (error) {
+                throw { code: 'commandHandlerRegistrationError', error };
+            }
+        }
     }
 
     /**
      * Регистрирует обработчик callback-запросов.
      */
     async registerCallbackQueryHandler() {
-        this.bot.on('callback_query', async (ctx) => {
-            const callbackHandler = new CallbackHandler(
-                new UserCallback(ctx, this.logger),
-                new AppointmentCallback(ctx, this.logger),
-                new MenuCallback(ctx, this.logger),
-                this.logger
-            );
-            await callbackHandler.handle(ctx);
-        });
+        try {
+            this.bot.on('callback_query', async (ctx) => {
+                const callbackHandler = new CallbackHandler(
+                    new UserCallback(ctx, this.logger),
+                    new AppointmentCallback(ctx, this.logger),
+                    new MenuCallback(ctx, this.logger),
+                    this.logger
+                );
+                try {
+                    await callbackHandler.handle(ctx);
+                } catch (error) {
+                    ErrorHandler.handleError(
+                        { code: 'callbackExecutionError', error },
+                        ctx
+                    );
+                }
+            });
+        } catch (error) {
+            throw { code: 'callbackHandlerRegistrationError', error };
+        }
+    }
+
+    /**
+     * Регистрирует обработчик сообщений.
+     */
+    async registerMessageHandler() {
+        try {
+            this.bot.on('message', async (ctx) => {
+                try {
+                    this.logger.info(
+                        `Получено сообщение от пользователя ${ctx.message.from.id}: ${ctx.message.text}`
+                    );
+                    await new InfoCommand(ctx).handle();
+                } catch (error) {
+                    ErrorHandler.handleError(
+                        { code: 'messageHandlerError', error },
+                        ctx
+                    );
+                }
+            });
+        } catch (error) {
+            throw { code: 'messageHandlerRegistationError', error };
+        }
     }
 
     /**
      * Запускает бота.
      */
     async launchBot() {
-        this.bot.launch();
-        this.logger.info('Бот запущен');
+        try {
+            this.bot.launch();
+            this.logger.info('Бот запущен');
+        } catch (error) {
+            throw { code: 'botLaunchError', error };
+        }
     }
 
     /**
      * Удаляет устаревшие записи из базы данных.
      */
     async cleanupOldRecords() {
-        await CleanUpService.cleanupOldRecords();
-        this.logger.info('Устаревшие записи очищены');
+        try {
+            await CleanUpService.cleanupOldRecords();
+            this.logger.info('Устаревшие записи очищены');
+        } catch (error) {
+            throw { code: 'recordCleanupError', error };
+        }
     }
 
     /**
      * Планирует отправку напоминаний пользователям.
      */
     async scheduleReminders() {
-        cron.schedule('0 10 * * *', async () => {
-            await ReminderService.sendReminders(this.bot);
-            this.logger.info('Уведомления отправлены');
-        });
+        try {
+            cron.schedule('0 10 * * *', async () => {
+                await ReminderService.sendReminders(this.bot);
+                this.logger.info('Уведомления отправлены');
+            });
+        } catch (error) {
+            throw { code: 'reminderSchedulingError', error };
+        }
     }
 
     /**
      * Планирует удаление устаревших записей.
      */
     async scheduleCleanUp() {
-        cron.schedule('0 10 * * *', async () => {
-            await CleanUpService.cleanupOldRecords();
-            this.logger.info('Устаревшие записи очищены');
-        });
+        try {
+            cron.schedule('0 10 * * *', async () => {
+                await CleanUpService.cleanupOldRecords();
+                this.logger.info('Устаревшие записи очищены');
+            });
+        } catch (error) {
+            throw { code: 'cleanupSchedulingError', error };
+        }
     }
 
     /**
@@ -149,7 +211,7 @@ class TelegramBot {
             await this.bot.stop();
             this.logger.info('Бот остановлен');
         } catch (error) {
-            this.logger.error('Ошибка при остановке бота:', error);
+            throw { code: 'botStopError', error };
         }
     }
 
@@ -168,10 +230,7 @@ class TelegramBot {
                     `Уведомление отправлено пользователю ${user.id}`
                 );
             } catch (error) {
-                this.logger.error(
-                    `Ошибка при отправке уведомления пользователю ${user.id}:`,
-                    error
-                );
+                throw { code: 'stopNotificationError', error };
             }
         }
     }

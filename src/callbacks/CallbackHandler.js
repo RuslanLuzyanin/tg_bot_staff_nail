@@ -4,51 +4,54 @@ class CallbackHandler {
         this.appointmentCallback = appointmentCallback;
         this.menuCallback = menuCallback;
         this.logger = logger;
+        this.callbackMap = this.generateCallbackMap();
+    }
 
-        this.callbackMap = {
+    generateCallbackMap() {
+        return {
             user_verification: [
-                this.userCallback.handleVerification,
-                this.menuCallback.createMainMenu,
+                'userCallback.handleVerification',
+                'menuCallback.createMainMenu',
             ],
             menu_to_cancel_appointment: [
-                this.appointmentCallback.handleGetAppointments,
-                this.menuCallback.createCancelAppointmentsMenu,
+                'appointmentCallback.handleGetAppointments',
+                'menuCallback.createCancelAppointmentsMenu',
             ],
             menu_to_check_appointment: [
-                this.appointmentCallback.handleGetAppointments,
-                this.menuCallback.createCheckAppointmentsMenu,
+                'appointmentCallback.handleGetAppointments',
+                'menuCallback.createCheckAppointmentsMenu',
             ],
-            menu_to_main_menu: [this.menuCallback.createMainMenu],
+            menu_to_main_menu: ['menuCallback.createMainMenu'],
             menu_to_procedure_menu: [
-                this.appointmentCallback.handleGetAppointments,
-                this.menuCallback.createProcedureMenu,
+                'appointmentCallback.handleGetAppointments',
+                'menuCallback.createProcedureMenu',
             ],
-            menu_to_month_menu: [this.menuCallback.createMonthMenu],
-            menu_to_day_menu: [this.menuCallback.createDayMenu],
-            menu_to_time_menu: [this.menuCallback.createTimeMenu],
+            menu_to_month_menu: ['menuCallback.createMonthMenu'],
+            menu_to_day_menu: ['menuCallback.createDayMenu'],
+            menu_to_time_menu: ['menuCallback.createTimeMenu'],
             app_select_procedure_: [
-                this.appointmentCallback.handleSelectProcedure,
-                this.menuCallback.createMonthMenu,
+                'appointmentCallback.handleSelectProcedure',
+                'menuCallback.createMonthMenu',
             ],
             app_select_month_: [
-                this.appointmentCallback.handleSelectMonth,
-                this.menuCallback.createDayMenu,
+                'appointmentCallback.handleSelectMonth',
+                'menuCallback.createDayMenu',
             ],
             app_select_day_: [
-                this.appointmentCallback.handleSelectDay,
-                this.menuCallback.createTimeMenu,
+                'appointmentCallback.handleSelectDay',
+                'menuCallback.createTimeMenu',
             ],
             app_select_time_: [
-                this.appointmentCallback.handleSelectTime,
-                this.menuCallback.createConfirmationMenu,
+                'appointmentCallback.handleSelectTime',
+                'menuCallback.createConfirmationMenu',
             ],
             app_confirm: [
-                this.appointmentCallback.handleConfirm,
-                this.menuCallback.createMainMenu,
+                'appointmentCallback.handleConfirm',
+                'menuCallback.createMainMenu',
             ],
             app_cancel_: [
-                this.appointmentCallback.handleCancel,
-                this.menuCallback.createMainMenu,
+                'appointmentCallback.handleCancel',
+                'menuCallback.createMainMenu',
             ],
         };
     }
@@ -60,26 +63,17 @@ class CallbackHandler {
 
         if (matchingKey) {
             const callbacks = this.callbackMap[matchingKey];
-            await this.executeCallbacks(ctx, callbacks);
+            await this.executeCallbacks(callbacks);
             return;
         }
 
-        throw new Error(`Неизвестный колбек: ${ctx.callbackQuery.data}`);
+        throw { code: 'unknownCallback' };
     }
 
-    async executeCallbacks(ctx, callbacks) {
+    async executeCallbacks(callbacks) {
         for (const callback of callbacks) {
-            try {
-                await callback(ctx);
-            } catch (error) {
-                this.logger.error(
-                    `Ошибка при обработке колбека "${callbacks[0]}":`,
-                    error
-                );
-                await ctx.reply(
-                    'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.'
-                );
-            }
+            const [className, methodName] = callback.split('.');
+            await this[className][methodName]();
         }
     }
 }

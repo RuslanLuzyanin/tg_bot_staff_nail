@@ -18,6 +18,12 @@ class ReminderService {
             { $group: { _id: '$userId', appointments: { $push: '$$ROOT' } } },
         ]);
 
+        const procedures = await Procedure.find();
+        const proceduresByEnglishName = procedures.reduce((acc, proc) => {
+            acc[proc.englishName] = proc;
+            return acc;
+        }, {});
+
         const messagePromises = [];
         for (const { _id: userId, appointments } of records) {
             const user = await User.findOne({ id: userId });
@@ -27,10 +33,8 @@ class ReminderService {
                     skipCount--;
                     continue;
                 }
-
-                const procedure = await Procedure.findOne({
-                    englishName: appointment.procedure,
-                });
+                const procedure =
+                    proceduresByEnglishName[appointment.procedure];
                 const formattedDate = moment(tomorrow, 'D MMMM')
                     .locale('ru')
                     .format('D MMM');

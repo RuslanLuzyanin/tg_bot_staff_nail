@@ -1,29 +1,6 @@
+const _ = require('lodash');
+
 class MenuService {
-    /**
-     * Проверяет входные данные для меню.
-     *
-     * @param {Array<{ text: string, callback: string | URL }>} menuData Данные для меню.
-     */
-    static validateMenuData(menuData) {
-        if (!Array.isArray(menuData)) {
-            throw new Error('MenuData должен быть массивом объектов');
-        }
-
-        for (const buttonData of menuData) {
-            if (!buttonData.text) {
-                throw new Error(
-                    'Каждый элемент MenuData должен иметь свойство text'
-                );
-            }
-
-            if (!buttonData.callback && !buttonData.url) {
-                throw new Error(
-                    'Каждый элемент MenuData должен иметь свойство callback или url'
-                );
-            }
-        }
-    }
-
     /**
      * Создает меню.
      *
@@ -49,20 +26,28 @@ class MenuService {
             return button;
         });
 
-        return this.chunk(buttons, buttonsPerRow);
+        return _.chunk(buttons, buttonsPerRow);
     }
 
     /**
-     * Разбивает массив на чанки заданного размера.
+     * Проверяет входные данные для меню.
      *
-     * @param {Array} array Массив для разбиения.
-     * @param {number} size Размер чанка.
-     * @returns {Array<Array>} Массив чанков.
+     * @param {Array<{ text: string, callback: string | URL }>} menuData Данные для меню.
      */
-    static chunk(array, size) {
-        return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
-            array.slice(i * size, (i + 1) * size)
-        );
+    static validateMenuData(menuData) {
+        if (!Array.isArray(menuData)) {
+            throw { code: 'validateMenuDataMassiveError' };
+        }
+
+        for (const buttonData of menuData) {
+            if (!buttonData.text) {
+                throw { code: 'validateMenuDataTextError' };
+            }
+
+            if (!buttonData.callback && !buttonData.url) {
+                throw { code: 'validateMenuDataCallbackError' };
+            }
+        }
     }
 }
 
