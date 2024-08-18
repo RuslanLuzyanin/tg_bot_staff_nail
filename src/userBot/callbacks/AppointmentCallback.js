@@ -1,7 +1,7 @@
-const Record = require('../../models/Record');
-const Procedure = require('../../models/Procedure');
+const Record = require('../../../models/Record');
+const Procedure = require('../../../models/Procedure');
 const moment = require('moment');
-const config = require('../../config/Config');
+const config = require('../config/Config');
 
 class AppointmentCallback {
     /**
@@ -9,9 +9,10 @@ class AppointmentCallback {
      * @param {object} ctx - Контекст телеграф.
      * @param {object} logger - Объект логгера.
      */
-    constructor(ctx, logger) {
+    constructor(ctx, logger, bot) {
         this.ctx = ctx;
         this.logger = logger;
+        this.bot = bot;
     }
 
     /**
@@ -82,13 +83,19 @@ class AppointmentCallback {
         const selectedProcedure = procedure.russianName;
         const duration = procedure.duration;
 
-        const message = [
+        const messageData = [
             `Вы записались на ${formattedDate} в ${selectedTime},`,
             `Ваша процедура - ${selectedProcedure}.`,
             `Процедура будет проходить по адресу: ${config.receptionAddress}`,
         ].join('\n');
 
-        await this.ctx.reply(message);
+        const message = await this.ctx.reply(messageData);
+        setTimeout(() => this.ctx.deleteMessage(message.message_id), 3000);
+
+        await this.bot.telegram.sendMessage(
+            config.userId,
+            `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} создал запись на ${formattedDate}, ${selectedTime}`
+        );
 
         for (let i = 0; i < duration; i++) {
             const recordTime = moment(selectedTime, 'HH:mm')
@@ -186,8 +193,13 @@ class AppointmentCallback {
                 );
             }
         }
+        await this.bot.telegram.sendMessage(
+            config.userId,
+            `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} удалил запись на ${dateString}, ${time}`
+        );
 
-        await this.ctx.reply('Ваша запись успешно отменена.');
+        const message = await this.ctx.reply('Ваша запись успешно отменена.');
+        setTimeout(() => this.ctx.deleteMessage(message.message_id), 3000);
     }
 }
 

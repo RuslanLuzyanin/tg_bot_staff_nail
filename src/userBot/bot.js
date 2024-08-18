@@ -11,14 +11,14 @@ const AppointmentCallback = require('./callbacks/AppointmentCallback');
 const MenuCallback = require('./callbacks/MenuCallback');
 const ReminderService = require('./services/ReminderService');
 const CleanUpService = require('./services/CleanUpService');
-const User = require('../models/User');
-const Log = require('../lib/Log');
-const ErrorHandler = require('../lib/ErrorHandler');
-const config = require('../config/Config');
+const User = require('../../models/User');
+const Log = require('./lib/Log');
+const ErrorHandler = require('./lib/ErrorHandler');
+const config = require('./config/Config');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
 
-class TelegramBot {
+class UserBot {
     constructor() {
         this.bot = new Telegraf(config.telegramToken);
         this.logger = new Log();
@@ -109,7 +109,7 @@ class TelegramBot {
             this.bot.on('callback_query', async (ctx) => {
                 const callbackHandler = new CallbackHandler(
                     new UserCallback(ctx, this.logger),
-                    new AppointmentCallback(ctx, this.logger),
+                    new AppointmentCallback(ctx, this.logger, this.bot),
                     new MenuCallback(ctx, this.logger),
                     this.logger
                 );
@@ -140,9 +140,15 @@ class TelegramBot {
                     );
                     await this.bot.telegram.sendMessage(
                         config.userId,
-                        `Пользователь ${from.id} отправил сообщение: ${message.text}`
+                        `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} отправил сообщение: ${message.text}`
                     );
-                    await ctx.reply('Ваше сообщение передано Администратору');
+                    const messageUser = await ctx.reply(
+                        'Ваше сообщение передано Администратору'
+                    );
+                    setTimeout(
+                        () => ctx.deleteMessage(messageUser.message_id),
+                        3000
+                    );
                 } catch (error) {
                     ErrorHandler.handleError(
                         { code: 'messageHandlerError', error },
@@ -241,4 +247,4 @@ class TelegramBot {
     }
 }
 
-module.exports = TelegramBot;
+module.exports = UserBot;

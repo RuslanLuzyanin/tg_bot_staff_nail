@@ -1,6 +1,6 @@
-const Record = require('../../models/Record');
-const Procedure = require('../../models/Procedure');
-const User = require('../../models/User');
+const Record = require('../../../models/Record');
+const Procedure = require('../../../models/Procedure');
+const User = require('../../../models/User');
 const moment = require('moment');
 /**
  * Сервис для отправки напоминаний пользователям о предстоящих записях на процедуры.

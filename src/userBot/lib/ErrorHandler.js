@@ -29,7 +29,7 @@ class ErrorHandler {
         unexpectedError: 'Непредвиденная ошибка',
     };
 
-    static handleError(error, ctx) {
+    static async handleError(error, ctx, bot) {
         const errorCode = Object.keys(this.ERRORS).find(
             (code) => error.code === code
         );
@@ -37,9 +37,11 @@ class ErrorHandler {
             this.ERRORS[errorCode] || this.ERRORS.unexpectedError;
 
         this.logger.error(errorMessage, error);
-        ctx.reply(
+
+        const message = await ctx.reply(
             'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.'
         );
+        setTimeout(() => ctx.deleteMessage(message.message_id), 3000);
     }
 
     static setLogger(logger) {

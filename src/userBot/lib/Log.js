@@ -20,7 +20,7 @@ class Log {
                     format: format.combine(format.colorize(), format.simple()),
                 }),
                 new DailyRotateFile({
-                    dirname: 'logs',
+                    dirname: 'src/userBot/logs',
                     filename: 'app-%DATE%.log',
                     datePattern: 'YYYY-MM-DD',
                     zippedArchive: true,

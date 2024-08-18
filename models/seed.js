@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
-const Procedure = require('./models/Procedure');
-const Portfolio = require('./models/Portfolio');
-const WorkingTime = require('./models/WorkingTime');
-const config = require('./config/Config');
+const Procedure = require('./Procedure');
+const Portfolio = require('./Portfolio');
+const WorkingTime = require('./WorkingTime');
+const config = require('../config/Config');
 
 const seedData = [
     {

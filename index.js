@@ -1,10 +1,16 @@
-const TelegramBot = require('./src/bot');
+const path = require('path');
 
-const bot = new TelegramBot();
+// Загружаем конфигурацию для бота userBot
+process.env.NODE_ENV = 'userBot';
+require('dotenv').config({ path: path.join(__dirname, 'userBot', '.env') });
+
+// Импортируем и запускаем бота userBot
+const UserBot = require('./src/userBot/bot');
+const userBot = new UserBot();
+userBot.start();
 
 let isShuttingDown = false;
 
-bot.start();
 /* Выключил чтобы не заебывало
 
 process.on('SIGINT', async () => {

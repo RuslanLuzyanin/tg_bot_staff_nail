@@ -1,9 +1,9 @@
 const { Markup } = require('telegraf');
-const MenuService = require('../services/MenuService');
+const MenuService = require('../../shared/services/MenuService');
 const FilterService = require('../services/FilterService');
-const Procedure = require('../../models/Procedure');
-const WorkingTime = require('../../models/WorkingTime');
-const Record = require('../../models/Record');
+const Procedure = require('../../../models/Procedure');
+const WorkingTime = require('../../../models/WorkingTime');
+const Record = require('../../../models/Record');
 const moment = require('moment');
 
 class MenuCallback {
@@ -45,12 +45,13 @@ class MenuCallback {
     async createProcedureMenu() {
         const { appointments } = this.ctx.session;
         if (appointments.length >= 3) {
-            await this.ctx.reply(
-                'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись.'
-            );
-            await this.ctx.reply(
-                'Чтобы создать новую запись, отменить одну из существующих.'
-            );
+            const messageData = [
+                `У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись.`,
+                `Чтобы создать новую запись, отменить одну из существующих.`,
+            ].join('\n');
+
+            const message = await this.ctx.reply(messageData);
+            setTimeout(() => this.ctx.deleteMessage(message.message_id), 3000);
             return;
         }
 
@@ -285,7 +286,10 @@ class MenuCallback {
         const { appointments } = this.ctx.session;
 
         if (!appointments || appointments.length === 0) {
-            await this.ctx.reply('У Вас нет записей на процедуры.');
+            const message = await this.ctx.reply(
+                'У Вас нет записей на процедуры.'
+            );
+            setTimeout(() => this.ctx.deleteMessage(message.message_id), 3000);
             return;
         }
 
@@ -322,7 +326,10 @@ class MenuCallback {
         const { appointments } = this.ctx.session;
 
         if (!appointments || appointments.length === 0) {
-            await this.ctx.reply('У Вас нет записей на процедуры.');
+            const message = await this.ctx.reply(
+                'У Вас нет записей на процедуры.'
+            );
+            setTimeout(() => this.ctx.deleteMessage(message.message_id), 3000);
             return;
         }
 

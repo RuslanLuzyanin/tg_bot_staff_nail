@@ -1,4 +1,4 @@
-const Record = require('../../models/Record');
+const Record = require('../../../models/Record');
 const moment = require('moment');
 /**
  * Сервис для очистки устаревших записей из базы данных.
