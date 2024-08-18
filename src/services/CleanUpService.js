@@ -8,14 +8,12 @@ class CleanupService {
      * Удаляет все записи, дата которых старше одного дня.
      */
     static async cleanupOldRecords() {
-        const records = await Record.find();
+        const oneDay = 24 * 60 * 60 * 1000; // 1 день в миллисекундах
+        const cutoffDate = new Date(Date.now() - oneDay);
 
-        for (const record of records) {
-            const recordDate = moment(record.date, 'D MMMM');
-            if (recordDate.isBefore(moment().subtract(1, 'day'), 'day')) {
-                await Record.deleteOne({ _id: record._id });
-            }
-        }
+        await Record.deleteMany({
+            date: { $lt: cutoffDate },
+        });
     }
 }
 

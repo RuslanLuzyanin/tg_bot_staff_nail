@@ -134,10 +134,15 @@ class TelegramBot {
         try {
             this.bot.on('message', async (ctx) => {
                 try {
+                    const { from, message } = ctx;
                     this.logger.info(
-                        `Получено сообщение от пользователя ${ctx.message.from.id}: ${ctx.message.text}`
+                        `Получено сообщение от пользователя ${from.id}: ${message.text}`
                     );
-                    await new InfoCommand(ctx).handle();
+                    await this.bot.telegram.sendMessage(
+                        config.userId,
+                        `Пользователь ${from.id} отправил сообщение: ${message.text}`
+                    );
+                    await ctx.reply('Ваше сообщение передано Администратору');
                 } catch (error) {
                     ErrorHandler.handleError(
                         { code: 'messageHandlerError', error },

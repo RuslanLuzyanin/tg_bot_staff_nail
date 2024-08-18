@@ -75,32 +75,41 @@ class MenuCallback {
      * Выбор месяца представляется из 2-ух (текущий и следующий).
      */
     async createMonthMenu() {
-        const currentMonth = moment()
-            .locale('ru')
-            .format('MMMM')
-            .toLowerCase()
-            .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
-        const nextMonth = moment()
-            .locale('ru')
-            .add(1, 'month')
-            .format('MMMM')
-            .toLowerCase()
-            .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
+        const currentDate = moment();
+        const isLastDayOfMonth =
+            currentDate.date() === currentDate.daysInMonth();
+        let currentMonth, currentYear, nextMonth, nextYear;
 
-        const currentMonthEnglish = moment().locale('en').format('MMMM');
-        const nextMonthEnglish = moment()
-            .locale('en')
-            .add(1, 'month')
-            .format('MMMM');
+        if (isLastDayOfMonth) {
+            currentMonth = (currentDate.month() + 2) % 12 || 12;
+            currentYear =
+                currentMonth === 1
+                    ? currentDate.year() + 1
+                    : currentDate.year();
+            nextMonth = (currentMonth % 12) + 1;
+            nextYear = nextMonth === 1 ? currentYear + 1 : currentYear;
+        } else {
+            currentMonth = currentDate.month() + 1;
+            currentYear = currentDate.year();
+            nextMonth = (currentMonth % 12) + 1;
+            nextYear = nextMonth === 1 ? currentYear + 1 : currentYear;
+        }
+
+        function formatMonthYear(month, year) {
+            const monthName = moment(`${year}-${month}`, 'YYYY-M')
+                .locale('ru')
+                .format('MMMM');
+            return `${monthName[0].toUpperCase() + monthName.slice(1)} ${year}`;
+        }
 
         const menuData = [
             {
-                text: currentMonth,
-                callback: `app_select_month_${currentMonthEnglish}`,
+                text: formatMonthYear(currentMonth, currentYear),
+                callback: `app_select_month_${currentMonth}_${currentYear}`,
             },
             {
-                text: nextMonth,
-                callback: `app_select_month_${nextMonthEnglish}`,
+                text: formatMonthYear(nextMonth, nextYear),
+                callback: `app_select_month_${nextMonth}_${nextYear}`,
             },
             { text: 'Назад', callback: 'menu_to_procedure_menu' },
         ];
@@ -120,13 +129,17 @@ class MenuCallback {
      *
      */
     async createDayMenu() {
-        const { selectedMonth } = this.ctx.session;
-        const currentMonth = moment().locale('en').format('MMMM');
+        const { selectedMonth, selectedYear } = this.ctx.session;
+        const currentDate = moment();
+        let startDate;
 
-        let startDate = moment().add(1, 'day').locale('ru');
-        if (selectedMonth !== currentMonth) {
-            startDate.add(1, 'month');
-            startDate.date(1);
+        if (selectedMonth !== currentDate.format('M')) {
+            startDate = moment(
+                `${selectedYear}-${selectedMonth}-01`,
+                'YYYY-MM-DD'
+            ).startOf('month');
+        } else {
+            startDate = moment().add(1, 'day').startOf('day');
         }
 
         const endDate = moment(startDate).endOf('month');
@@ -145,24 +158,26 @@ class MenuCallback {
         });
         const { duration: procedureDuration } = procedure;
 
-        while (startDate.isBefore(endDate) || startDate.isSame(endDate)) {
-            const day = startDate.date();
-            const dayString = startDate
-                .locale('ru')
-                .format('dd, D MMM')
-                .toLowerCase()
-                .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase());
-
-            const formattedDate = startDate.locale('en').format('D MMMM');
-            const occupiedTimes = await Record.find({ date: formattedDate });
+        while (startDate.isSameOrBefore(endDate)) {
+            const formattedDate = startDate.format('DD.MM.YYYY');
+            const occupiedTimes = await Record.find({
+                date: {
+                    $gte: startDate.toDate(),
+                    $lt: moment(startDate).add(1, 'day').toDate(),
+                },
+            });
 
             if (
                 occupiedTimes.length <=
                 totalAvailableSlots - procedureDuration
             ) {
                 menuData.push({
-                    text: dayString,
-                    callback: `app_select_day_${day}`,
+                    text: startDate
+                        .locale('ru')
+                        .format('dd, D MMM')
+                        .toLowerCase()
+                        .replace(/(?:^|\s)\S/g, (a) => a.toUpperCase()),
+                    callback: `app_select_day_${formattedDate}`,
                 });
             }
 
@@ -192,10 +207,18 @@ class MenuCallback {
         });
         const { duration: procedureDuration } = procedure;
 
-        const occupiedTimes = await Record.find({ date: selectedDate }).select(
-            'time'
+        const occupiedTimes = await Record.find({
+            date: selectedDate,
+        })
+            .select('time')
+            .catch((err) => {
+                this.logger.error('Ошибка при поиске записей:', err);
+                return [];
+            });
+
+        const occupiedTimeArray = occupiedTimes.map(({ time }) =>
+            moment(time, 'HH:mm').format('HH:mm')
         );
-        const occupiedTimeArray = occupiedTimes.map(({ time }) => time);
 
         const params = {
             startTime: workingTime.startTime,
@@ -232,10 +255,8 @@ class MenuCallback {
             selectedProcedure: selectedProcedureEnglishName,
         } = this.ctx.session;
 
-        const [day, month] = selectedDate.split(' ');
-        const formattedDate = `${day} ${moment(month, 'MMMM')
-            .locale('ru')
-            .format('MMM')}`;
+        const selectedDateMoment = moment(selectedDate, 'DD.MM.YYYY');
+        const formattedDate = selectedDateMoment.locale('ru').format('D MMM');
 
         const procedure = await Procedure.findOne({
             englishName: selectedProcedureEnglishName,
@@ -278,11 +299,7 @@ class MenuCallback {
 
         let message = 'Ваши записи на процедуры:\n\n';
         for (const { procedure, date, time } of appointments) {
-            const [day, month] = date.split(' ');
-            const formattedDate = `${day} ${moment(month, 'MMMM')
-                .locale('ru')
-                .format('MMM')}`;
-
+            const formattedDate = moment(date).locale('ru').format('D MMM');
             message += `- ${procedureMap.get(
                 procedure
             )} (${formattedDate} в ${time})\n`;
@@ -308,6 +325,7 @@ class MenuCallback {
             await this.ctx.reply('У Вас нет записей на процедуры.');
             return;
         }
+
         const procedures = await Procedure.find(
             {},
             { englishName: 1, russianName: 1 }
@@ -320,19 +338,18 @@ class MenuCallback {
         const menuData = [];
 
         for (const { procedure, date, time } of appointments) {
-            const [day, month] = date.split(' ');
-            const formattedDate = `${day} ${moment(month, 'MMMM')
-                .locale('ru')
-                .format('MMM')}`;
-
+            const formattedDate = moment(date).locale('ru').format('D MMM');
             const buttonText = `${procedureMap.get(
                 procedure
             )} (${formattedDate} в ${time})`;
             menuData.push({
                 text: buttonText,
-                callback: `app_cancel_${procedure}_${date}_${time}`,
+                callback: `app_cancel_${procedure}_${moment(date).format(
+                    'DD.MM.YYYY'
+                )}_${time}`,
             });
         }
+
         menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
         const keyboard = Markup.inlineKeyboard(
             MenuService.createMenu(menuData, 1)

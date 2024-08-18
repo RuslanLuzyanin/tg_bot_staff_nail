@@ -6,7 +6,7 @@ class Config {
     get(key) {
         const value = process.env[key];
         if (!value) {
-            throw new Error(`Environment variable ${key} is not set`);
+            throw { code: 'unknownEnvKey' };
         }
         return value;
     }
@@ -21,6 +21,10 @@ class Config {
 
     get uri() {
         return this.get('MONGO_URI');
+    }
+
+    get receptionAddress() {
+        return this.get('RECEPTION_ADDRESS');
     }
 }
 
