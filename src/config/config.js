@@ -1,22 +1,22 @@
 class Config {
     constructor() {
-        require('dotenv').config({ path: `${__dirname}/../.env` });
+        require('dotenv').config();
     }
 
     get(key) {
         const value = process.env[key];
         if (!value) {
-            throw { code: 'unknownEnvKey' };
+            throw new Error('unknownEnvKey');
         }
         return value;
     }
 
     get telegramToken() {
-        return this.get('TELEGRAM_TOKEN');
+        return this.get('USER_BOT_TOKEN');
     }
 
     get userId() {
-        return this.get('USER_ID');
+        return this.get('USER_ADMIN_ID');
     }
 
     get uri() {

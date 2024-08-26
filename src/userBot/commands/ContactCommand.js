@@ -1,5 +1,5 @@
 const { Markup } = require('telegraf');
-const MenuService = require('../../shared/services/MenuService');
+const MenuService = require('../../shared/services/menuService');
 
 /**
  * Сообщение, которое будет отправлено пользователю при вызове команды /contact.

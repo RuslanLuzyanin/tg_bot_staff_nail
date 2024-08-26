@@ -1,4 +1,4 @@
-const Record = require('../../../models/Record');
+const Record = require('../../db/models/record');
 const moment = require('moment');
 /**
  * Сервис для очистки устаревших записей из базы данных.
@@ -8,8 +8,7 @@ class CleanupService {
      * Удаляет все записи, дата которых старше одного дня.
      */
     static async cleanupOldRecords() {
-        const oneDay = 24 * 60 * 60 * 1000; // 1 день в миллисекундах
-        const cutoffDate = new Date(Date.now() - oneDay);
+        const cutoffDate = moment().subtract(1, 'day').toDate();
 
         await Record.deleteMany({
             date: { $lt: cutoffDate },

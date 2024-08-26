@@ -1,6 +1,6 @@
-const Record = require('../../../models/Record');
-const Procedure = require('../../../models/Procedure');
-const User = require('../../../models/User');
+const Record = require('../../db/models/record');
+const Procedure = require('../../db/models/procedure');
+const User = require('../../db/models/user');
 const moment = require('moment');
 /**
  * Сервис для отправки напоминаний пользователям о предстоящих записях на процедуры.
@@ -16,6 +16,7 @@ class ReminderService {
             start: moment().startOf('day').add(1, 'day').toDate(),
             end: moment().endOf('day').add(1, 'day').toDate(),
         };
+
         const records = await Record.aggregate([
             {
                 $match: {
@@ -34,9 +35,15 @@ class ReminderService {
             return acc;
         }, {});
 
+        const users = await Promise.all(
+            records.map(async ({ _id: userId, appointments }) => {
+                const user = await User.findOne({ id: userId });
+                return { user, appointments };
+            })
+        );
+
         const messagePromises = [];
-        for (const { _id: userId, appointments } of records) {
-            const user = await User.findOne({ id: userId });
+        for (const { user, appointments } of users) {
             let skipCount = 0;
             for (const appointment of appointments) {
                 if (skipCount > 0) {
@@ -49,7 +56,7 @@ class ReminderService {
                     .locale('ru')
                     .format('D MMM');
                 const message = [
-                    `Напоминаем, что завтра в ${appointment.time},`,
+                    `Напоминаем, что завтра(${formattedDate}) в ${appointment.time},`,
                     `у Вас процедура - ${procedure.russianName}.`,
                     `Если Ваши планы поменялись свяжитесь с мастером или отмените запись.`,
                     `Ждём Вас 😉`,
@@ -57,10 +64,10 @@ class ReminderService {
                 messagePromises.push(
                     bot.telegram.sendMessage(user.chatId, message)
                 );
-
                 skipCount = procedure.duration - 1;
             }
         }
+
         await Promise.all(messagePromises);
     }
 }

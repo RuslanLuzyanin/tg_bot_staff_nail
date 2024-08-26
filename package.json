@@ -7,7 +7,7 @@
         "dev": "nodemon index.js",
         "start": "node index.js",
         "lint": "eslint .",
-        "seed": "node models/seed.js"
+        "seed": "node src/db/seeds/seed.js"
     },
     "keywords": [],
     "author": "",

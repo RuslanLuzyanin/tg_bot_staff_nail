@@ -1,72 +1,61 @@
-const Record = require('../../../models/Record');
-const Procedure = require('../../../models/Procedure');
+const Record = require('../../db/models/record');
+const Procedure = require('../../db/models/procedure');
 const moment = require('moment');
-const config = require('../config/Config');
+const config = require('../../config/config');
 
 class AppointmentCallback {
-    /**
-     * Создает экземпляр класса AppointmentCallback.
-     * @param {object} ctx - Контекст телеграф.
-     * @param {object} logger - Объект логгера.
-     */
-    constructor(ctx, logger, bot) {
-        this.ctx = ctx;
-        this.logger = logger;
-        this.bot = bot;
-    }
-
     /**
      * Обрабатывает колбек выбора процедуры.
      * Извлекает имя процедуры из callbackData и сохраняет его в сессию.
      */
-    async handleSelectProcedure() {
-        const { callbackQuery, session } = this.ctx;
+    static async handleSelectProcedure(ctx, logger, bot) {
+        const { callbackQuery, session } = ctx;
         const procedureName = callbackQuery.data.split('_').slice(3).join('_');
         session.selectedProcedure = procedureName;
-        this.logger.debug(`Процедура "${procedureName}" выбрана`);
+        logger.debug(`Процедура "${procedureName}" выбрана`);
     }
 
     /**
      * Обрабатывает колбек выбора месяца.
      * Извлекает месяц и год из callbackData и сохраняет их в сессию.
      */
-    async handleSelectMonth() {
-        const { callbackQuery, session } = this.ctx;
+    static async handleSelectMonth(ctx, logger, bot) {
+        const { callbackQuery, session } = ctx;
         const [, , , month, year] = callbackQuery.data.split('_');
         session.selectedMonth = month;
         session.selectedYear = year;
-        this.logger.debug(`Месяц "${month}.${year}" выбран`);
+        logger.debug(`Месяц "${month}.${year}" выбран`);
     }
 
     /**
      * Обрабатывает колбек выбора дня.
      * Извлекает день, месяц и год из callbackData и сохраняет их в сессию.
      */
-    async handleSelectDay() {
-        const { callbackQuery, session } = this.ctx;
+    static async handleSelectDay(ctx, logger, bot) {
+        const { callbackQuery, session } = ctx;
         const [, , , dateString] = callbackQuery.data.split('_');
         const [day, month, year] = dateString.split('.');
         session.selectedDate = new Date(`${month}/${day}/${year}`);
-        this.logger.debug(`Дата "${dateString}" выбрана`);
+        logger.debug(`Дата "${dateString}" выбрана`);
     }
 
     /**
      * Обрабатывает колбек выбора времени.
      * Извлекает время из callbackData и сохраняет его в сессию.
      */
-    async handleSelectTime() {
-        const { callbackQuery, session } = this.ctx;
+    static async handleSelectTime(ctx, logger, bot) {
+        const { callbackQuery, session } = ctx;
         const [, , , timeString] = callbackQuery.data.split('_');
         session.selectedTime = timeString;
-        this.logger.debug(`Время "${timeString}" выбрано`);
+        logger.debug(`Время "${timeString}" выбрано`);
     }
 
     /**
      * Обрабатывает подтверждение записи на процедуру.
      * Извлекает данные из сессии, сохраняет запись в базу данных.
      */
-    async handleConfirm() {
-        const { from, session } = this.ctx;
+    static async handleConfirm(ctx, logger, bot) {
+        const { from, session } = ctx;
         const userId = from.id.toString();
         const {
             selectedDate,
@@ -89,10 +78,9 @@ class AppointmentCallback {
             `Процедура будет проходить по адресу: ${config.receptionAddress}`,
         ].join('\n');
 
-        const message = await this.ctx.reply(messageData);
-        setTimeout(() => this.ctx.deleteMessage(message.message_id), 3000);
+        await ctx.reply(messageData);
 
-        await this.bot.telegram.sendMessage(
+        await bot.telegram.sendMessage(
             config.userId,
             `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} создал запись на ${formattedDate}, ${selectedTime}`
         );
@@ -110,7 +98,7 @@ class AppointmentCallback {
             });
 
             await newRecord.save();
-            this.logger.info(
+            logger.info(
                 `Запись на процедуру "${selectedProcedure}" в ${recordTime} сохранена`
             );
         }
@@ -119,8 +107,8 @@ class AppointmentCallback {
     /**
      * Загружает записи пользователя из базы данных в сессию.
      */
-    async handleGetAppointments() {
-        const { from, session } = this.ctx;
+    static async handleGetAppointments(ctx, logger, bot) {
+        const { from, session } = ctx;
         const userId = from.id.toString();
         const records = await Record.find({ userId }).sort({
             date: 1,
@@ -154,7 +142,7 @@ class AppointmentCallback {
             });
         }
         session.appointments = appointments;
-        this.logger.debug(
+        logger.debug(
             `Получены записи пользователя ${userId}: ${appointments
                 .map((a) => `${a.procedure} (${a.date} ${a.time})`)
                 .join(', ')}`
@@ -164,8 +152,8 @@ class AppointmentCallback {
     /**
      * Обрабатывает отмену записи на процедуру.
      */
-    async handleCancel() {
-        const { callbackQuery, from } = this.ctx;
+    static async handleCancel(ctx, logger, bot) {
+        const { callbackQuery, from } = ctx;
         const [, , procedure, dateString, time] = callbackQuery.data
             .slice(1)
             .split('_');
@@ -188,18 +176,18 @@ class AppointmentCallback {
                 procedure,
             });
             if (recordToDelete) {
-                this.logger.info(
+                logger.info(
                     `Запись на ${recordToDelete.procedure} в ${recordToDelete.time} ${recordToDelete.date} удалена.`
                 );
             }
         }
-        await this.bot.telegram.sendMessage(
+        await bot.telegram.sendMessage(
             config.userId,
             `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} удалил запись на ${dateString}, ${time}`
         );
 
-        const message = await this.ctx.reply('Ваша запись успешно отменена.');
-        setTimeout(() => this.ctx.deleteMessage(message.message_id), 3000);
+        const message = await ctx.reply('Ваша запись успешно отменена.');
+        setTimeout(() => ctx.deleteMessage(message.message_id), 3000);
     }
 }
 

@@ -1,9 +1,3 @@
-const path = require('path');
-
-// Загружаем конфигурацию для бота userBot
-process.env.NODE_ENV = 'userBot';
-require('dotenv').config({ path: path.join(__dirname, 'userBot', '.env') });
-
 // Импортируем и запускаем бота userBot
 const UserBot = require('./src/userBot/bot');
 const userBot = new UserBot();

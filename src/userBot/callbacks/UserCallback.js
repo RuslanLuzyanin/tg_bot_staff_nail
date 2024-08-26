@@ -1,24 +1,14 @@
-const User = require('../../../models/User');
+const User = require('../../db/models/user');
 
 class UserCallback {
-    /**
-     * Создает экземпляр класса UserCallback.
-     * @param {object} ctx - Контекст телеграф.
-     * @param {object} logger - Объект логгера.
-     */
-    constructor(ctx, logger) {
-        this.ctx = ctx;
-        this.logger = logger;
-    }
-
     /**
      * Обрабатывает колбэк верификации пользователя.
      * Сохраняет или обновляет информацию о пользователе в базе данных.
      * @param {object} ctx - Контекст телеграф.
      */
-    async handleVerification() {
-        const { id: userId, first_name: userName } = this.ctx.from;
-        const { id: chatId } = this.ctx.chat;
+    static async handleVerification(ctx, logger, bot) {
+        const { id: userId, first_name: userName } = ctx.from;
+        const { id: chatId } = ctx.chat;
 
         let user = await User.findOne({ id: userId });
 
@@ -31,7 +21,7 @@ class UserCallback {
             await user.save();
         }
 
-        this.logger.debug(
+        logger.debug(
             'Информация о пользователе успешно сохранена в базу данных'
         );
     }

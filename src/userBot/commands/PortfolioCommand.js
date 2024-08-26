@@ -1,4 +1,4 @@
-const Portfolio = require('../../../models/Portfolio');
+const Portfolio = require('../../db/models/portfolio');
 
 /**
  * Класс, обрабатывающий команду /portfolio.

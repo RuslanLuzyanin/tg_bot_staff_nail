@@ -1,4 +1,4 @@
-const _ = require('lodash');
+const { chunk } = require('lodash');
 
 class MenuService {
     /**
@@ -26,7 +26,7 @@ class MenuService {
             return button;
         });
 
-        return _.chunk(buttons, buttonsPerRow);
+        return chunk(buttons, buttonsPerRow);
     }
 
     /**
@@ -36,16 +36,16 @@ class MenuService {
      */
     static validateMenuData(menuData) {
         if (!Array.isArray(menuData)) {
-            throw { code: 'validateMenuDataMassiveError' };
+            throw new Error('validateMenuDataMassiveError');
         }
 
         for (const buttonData of menuData) {
             if (!buttonData.text) {
-                throw { code: 'validateMenuDataTextError' };
+                throw new Error('validateMenuDataTextError');
             }
 
             if (!buttonData.callback && !buttonData.url) {
-                throw { code: 'validateMenuDataCallbackError' };
+                throw new Error('validateMenuDataCallbackError');
             }
         }
     }
