@@ -1,5 +1,4 @@
 const Portfolio = require('../../db/models/portfolio');
-const DataBaseError = require('../../errors/dataBaseError');
 
 /**
  * Класс, обрабатывающий команду /portfolio.
@@ -20,9 +19,7 @@ class PortfolioCommand {
      * Загружает изображения из базы данных и отправляет их пользователю в виде медиагруппы.
      */
     async handle() {
-        const portfolios = await Portfolio.find().catch((error) => {
-            throw new DataBaseError('findPortfolioError', error);
-        });
+        const portfolios = await Portfolio.find();
         const photoUrls = portfolios.map((portfolio) => portfolio.imageUrl);
 
         const { telegram, chat } = this.ctx;

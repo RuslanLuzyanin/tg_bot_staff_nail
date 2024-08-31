@@ -2,7 +2,6 @@ const Record = require('../../db/models/record');
 const Procedure = require('../../db/models/procedure');
 const moment = require('moment');
 const config = require('../../config/config');
-const DataBaseError = require('../../errors/dataBaseError');
 
 class AppointmentCallback {
     /**
@@ -93,8 +92,6 @@ class AppointmentCallback {
 
         const procedure = await Procedure.findOne({
             englishName: selectedProcedureEnglishName,
-        }).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
         });
         const selectedProcedure = procedure.russianName;
         const duration = procedure.duration;
@@ -124,9 +121,7 @@ class AppointmentCallback {
                 procedure: selectedProcedureEnglishName,
             });
 
-            await newRecord.save().catch((error) => {
-                throw new DataBaseError('saveRecordError', error);
-            });
+            await newRecord.save();
             logger.info(
                 `Запись на процедуру "${selectedProcedure}" в ${recordTime} сохранена`
             );
@@ -139,20 +134,14 @@ class AppointmentCallback {
     static async handleGetAppointments(ctx, logger) {
         const { from, session } = ctx;
         const userId = from.id.toString();
-        const records = await Record.find({ userId })
-            .sort({
-                date: 1,
-                time: 1,
-            })
-            .catch((error) => {
-                throw new DataBaseError('findRecodError', error);
-            });
+        const records = await Record.find({ userId }).sort({
+            date: 1,
+            time: 1,
+        });
 
-        const procedures = await Procedure.find()
-            .select('englishName duration')
-            .catch((error) => {
-                throw new DataBaseError('findProcedureError', error);
-            });
+        const procedures = await Procedure.find().select(
+            'englishName duration'
+        );
         const procedureMap = procedures.reduce((map, proc) => {
             map[proc.englishName] = proc.duration;
             return map;
@@ -194,8 +183,6 @@ class AppointmentCallback {
             .split('_');
         const procedureData = await Procedure.findOne({
             englishName: procedure,
-        }).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
         });
         const { duration: procedureDuration } = procedureData;
         const [day, month, year] = dateString.split('.');
@@ -211,8 +198,6 @@ class AppointmentCallback {
                 date: formattedDate,
                 time: recordTime,
                 procedure,
-            }).catch((error) => {
-                throw new DataBaseError('deleteRecordError', error);
             });
             if (recordToDelete) {
                 logger.info(

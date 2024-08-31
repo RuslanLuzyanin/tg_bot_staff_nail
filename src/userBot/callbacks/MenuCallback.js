@@ -7,7 +7,6 @@ const WorkingTime = require('../../db/models/workingTime');
 const Record = require('../../db/models/record');
 const moment = require('moment');
 const { receptionAddress } = require('../../config/config');
-const DataBaseError = require('../../errors/dataBaseError');
 
 class MenuCallback {
     /**
@@ -102,9 +101,7 @@ class MenuCallback {
             return;
         }
 
-        const procedures = await Procedure.find({}).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
-        });
+        const procedures = await Procedure.find({});
         const menuData = procedures.map((procedure) => ({
             text: procedure.russianName,
             callback: `app_select_procedure_${procedure.englishName}`,
@@ -196,9 +193,7 @@ class MenuCallback {
         const endDate = moment(startDate).endOf('month');
         const menuData = [];
 
-        const workingTime = await WorkingTime.findOne().catch((error) => {
-            throw new DataBaseError('findWorkingTimeError', error);
-        });
+        const workingTime = await WorkingTime.findOne();
         const { startTime, endTime } = workingTime;
         const totalAvailableSlots = moment(endTime, 'HH:mm').diff(
             moment(startTime, 'HH:mm'),
@@ -207,8 +202,6 @@ class MenuCallback {
 
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
-        }).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
         });
         const { duration: procedureDuration } = procedure;
 
@@ -222,8 +215,6 @@ class MenuCallback {
                         $gte: startDate.toDate(),
                         $lt: moment(startDate).add(1, 'day').toDate(),
                     },
-                }).catch((error) => {
-                    throw new DataBaseError('findRecodError', error);
                 });
 
                 if (
@@ -245,8 +236,6 @@ class MenuCallback {
                         $gte: slotStart.format('HH:mm'),
                         $lt: slotEnd.format('HH:mm'),
                     },
-                }).catch((error) => {
-                    throw new DataBaseError('findRecodError', error);
                 });
 
                 if (records.length < 2) {
@@ -288,18 +277,12 @@ class MenuCallback {
         const workingTime = await WorkingTime.findOne();
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
-        }).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
         });
         const { duration: procedureDuration } = procedure;
 
         const occupiedTimes = await Record.find({
             date: selectedDate,
-        })
-            .select('time')
-            .catch((error) => {
-                throw new DataBaseError('findRecodError', error);
-            });
+        }).select('time');
 
         const occupiedTimeArray = occupiedTimes.map(({ time }) =>
             moment(time, 'HH:mm').format('HH:mm')
@@ -345,8 +328,6 @@ class MenuCallback {
 
         const procedure = await Procedure.findOne({
             englishName: selectedProcedureEnglishName,
-        }).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
         });
         const selectedProcedure = procedure.russianName;
 
@@ -380,9 +361,7 @@ class MenuCallback {
         const procedures = await Procedure.find(
             {},
             { englishName: 1, russianName: 1 }
-        ).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
-        });
+        );
         const procedureMap = new Map(
             procedures.map((p) => [p.englishName, p.russianName])
         );
@@ -420,9 +399,7 @@ class MenuCallback {
         const procedures = await Procedure.find(
             {},
             { englishName: 1, russianName: 1 }
-        ).catch((error) => {
-            throw new DataBaseError('findProcedureError', error);
-        });
+        );
         const procedureMap = new Map(
             procedures.map((p) => [p.englishName, p.russianName])
         );

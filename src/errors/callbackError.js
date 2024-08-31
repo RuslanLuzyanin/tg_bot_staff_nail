@@ -7,7 +7,6 @@ class CallbackError extends CustomError {
 }
 
 CallbackError.ERRORS = {
-    searchAppointmentError: 'Ошибка при поиске записей',
     unknownCallback: 'Неизвестный колбек',
 };
 

@@ -32,6 +32,10 @@ class InfoCommand {
             name: '/portfolio',
             description: 'Просмотреть портфолио готовых работ',
         },
+        {
+            name: '/price',
+            description: 'Просмотреть прайс-лист',
+        },
     ];
 
     /**

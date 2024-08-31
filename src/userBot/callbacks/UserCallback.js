@@ -1,5 +1,4 @@
 const User = require('../../db/models/user');
-const DataBaseError = require('../../errors/dataBaseError');
 
 class UserCallback {
     /**
@@ -11,9 +10,7 @@ class UserCallback {
         const { id: userId, first_name: userName } = ctx.from;
         const { id: chatId } = ctx.chat;
 
-        let user = await User.findOne({ id: userId }).catch((error) => {
-            throw new DataBaseError('findUserError', error);
-        });
+        let user = await User.findOne({ id: userId });
 
         if (!user) {
             user = new User({ id: userId, name: userName, chatId: chatId });
@@ -21,9 +18,7 @@ class UserCallback {
             user.name = userName;
             user.chatId = chatId;
         }
-        await user.save().catch((error) => {
-            throw new DataBaseError('saveUserError', error);
-        });
+        await user.save();
         logger.debug(
             'Информация о пользователе успешно сохранена в базу данных'
         );
