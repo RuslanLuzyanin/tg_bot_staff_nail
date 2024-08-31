@@ -1,6 +1,6 @@
+const AppointmentError = require('../errors/appointmentError');
 const CallbackError = require('../errors/callbackError');
 const MenuError = require('../errors/menuError');
-const DataBaseError = require('../errors/dataBaseError');
 
 class ErrorHandler {
     static async handleError(error, ctx) {
@@ -10,9 +10,9 @@ class ErrorHandler {
         if (error instanceof CallbackError) {
             message =
                 'Извините, произошла ошибка при обработке callback-запроса. Пожалуйста, попробуйте еще раз.';
-        } else if (error instanceof DataBaseError) {
+        } else if (error instanceof AppointmentError) {
             message =
-                'Извините, произошла ошибка с базой данных. Пожалуйста, попробуйте еще раз.';
+                'Извините, это время занято. Пожалуйста, попробуйте еще раз.';
         } else if (error instanceof MenuError) {
             message =
                 'Извините, произошла ошибка с данными меню. Пожалуйста, попробуйте еще раз.';

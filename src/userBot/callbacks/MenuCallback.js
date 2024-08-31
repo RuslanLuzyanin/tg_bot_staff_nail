@@ -7,6 +7,8 @@ const WorkingTime = require('../../db/models/workingTime');
 const Record = require('../../db/models/record');
 const moment = require('moment');
 const { receptionAddress } = require('../../config/config');
+const CheckAppointmentService = require('../services/checkAppointmentService');
+const AppointmentError = require('../../errors/appointmentError');
 
 class MenuCallback {
     /**
@@ -77,7 +79,7 @@ class MenuCallback {
             MenuService.createMenu(menuData)
         );
         await ctx.editMessageText(
-            'Выберите удобный для Вас слот для записи:',
+            'Выберите удобный для Вас слот для записи (Это нужно для того чтобы отобразить только нужные для Вас дни):',
             keyboard
         );
         logger.debug('Меню выбора слота создано');
@@ -330,7 +332,15 @@ class MenuCallback {
             englishName: selectedProcedureEnglishName,
         });
         const selectedProcedure = procedure.russianName;
-
+        const duration = procedure.duration;
+        const conflictRecords = await CheckAppointmentService.checkAvailability(
+            selectedDate,
+            selectedTime,
+            duration
+        );
+        if (conflictRecords > 0) {
+            throw new AppointmentError('appointmentConflictError');
+        }
         const message = `Вы хотели бы записаться на ${formattedDate} в ${selectedTime}, Ваша процедура - ${selectedProcedure}?`;
 
         const menuData = [

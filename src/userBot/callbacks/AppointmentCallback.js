@@ -1,5 +1,7 @@
 const Record = require('../../db/models/record');
 const Procedure = require('../../db/models/procedure');
+const CheckAppointmentService = require('../services/checkAppointmentService');
+const AppointmentError = require('../../errors/appointmentError');
 const moment = require('moment');
 const config = require('../../config/config');
 
@@ -95,7 +97,14 @@ class AppointmentCallback {
         });
         const selectedProcedure = procedure.russianName;
         const duration = procedure.duration;
-
+        const conflictRecords = await CheckAppointmentService.checkAvailability(
+            selectedDate,
+            selectedTime,
+            duration
+        );
+        if (conflictRecords > 0) {
+            throw new AppointmentError('appointmentConflictError');
+        }
         const messageData = [
             `Вы записались на ${formattedDate} в ${selectedTime},`,
             `Ваша процедура - ${selectedProcedure}.`,
