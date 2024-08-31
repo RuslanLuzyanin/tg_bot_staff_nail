@@ -94,7 +94,7 @@ class AppointmentCallback {
         const procedure = await Procedure.findOne({
             englishName: selectedProcedureEnglishName,
         }).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const selectedProcedure = procedure.russianName;
         const duration = procedure.duration;
@@ -125,7 +125,7 @@ class AppointmentCallback {
             });
 
             await newRecord.save().catch((error) => {
-                throw new DataBaseError('searchAppointmentError', error);
+                throw new DataBaseError('saveRecordError', error);
             });
             logger.info(
                 `Запись на процедуру "${selectedProcedure}" в ${recordTime} сохранена`
@@ -145,13 +145,13 @@ class AppointmentCallback {
                 time: 1,
             })
             .catch((error) => {
-                throw new DataBaseError('searchAppointmentError', error);
+                throw new DataBaseError('findRecodError', error);
             });
 
         const procedures = await Procedure.find()
             .select('englishName duration')
             .catch((error) => {
-                throw new DataBaseError('searchAppointmentError', error);
+                throw new DataBaseError('findProcedureError', error);
             });
         const procedureMap = procedures.reduce((map, proc) => {
             map[proc.englishName] = proc.duration;
@@ -195,7 +195,7 @@ class AppointmentCallback {
         const procedureData = await Procedure.findOne({
             englishName: procedure,
         }).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const { duration: procedureDuration } = procedureData;
         const [day, month, year] = dateString.split('.');
@@ -212,7 +212,7 @@ class AppointmentCallback {
                 time: recordTime,
                 procedure,
             }).catch((error) => {
-                throw new DataBaseError('searchAppointmentError', error);
+                throw new DataBaseError('deleteRecordError', error);
             });
             if (recordToDelete) {
                 logger.info(

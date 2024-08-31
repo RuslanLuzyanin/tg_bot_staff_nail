@@ -103,7 +103,7 @@ class MenuCallback {
         }
 
         const procedures = await Procedure.find({}).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const menuData = procedures.map((procedure) => ({
             text: procedure.russianName,
@@ -197,7 +197,7 @@ class MenuCallback {
         const menuData = [];
 
         const workingTime = await WorkingTime.findOne().catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findWorkingTimeError', error);
         });
         const { startTime, endTime } = workingTime;
         const totalAvailableSlots = moment(endTime, 'HH:mm').diff(
@@ -208,7 +208,7 @@ class MenuCallback {
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
         }).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const { duration: procedureDuration } = procedure;
 
@@ -223,7 +223,7 @@ class MenuCallback {
                         $lt: moment(startDate).add(1, 'day').toDate(),
                     },
                 }).catch((error) => {
-                    throw new DataBaseError('searchAppointmentError', error);
+                    throw new DataBaseError('findRecodError', error);
                 });
 
                 if (
@@ -246,7 +246,7 @@ class MenuCallback {
                         $lt: slotEnd.format('HH:mm'),
                     },
                 }).catch((error) => {
-                    throw new DataBaseError('searchAppointmentError', error);
+                    throw new DataBaseError('findRecodError', error);
                 });
 
                 if (records.length < 2) {
@@ -289,7 +289,7 @@ class MenuCallback {
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
         }).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const { duration: procedureDuration } = procedure;
 
@@ -298,7 +298,7 @@ class MenuCallback {
         })
             .select('time')
             .catch((error) => {
-                throw new DataBaseError('searchAppointmentError', error);
+                throw new DataBaseError('findRecodError', error);
             });
 
         const occupiedTimeArray = occupiedTimes.map(({ time }) =>
@@ -346,7 +346,7 @@ class MenuCallback {
         const procedure = await Procedure.findOne({
             englishName: selectedProcedureEnglishName,
         }).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const selectedProcedure = procedure.russianName;
 
@@ -381,7 +381,7 @@ class MenuCallback {
             {},
             { englishName: 1, russianName: 1 }
         ).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const procedureMap = new Map(
             procedures.map((p) => [p.englishName, p.russianName])
@@ -421,7 +421,7 @@ class MenuCallback {
             {},
             { englishName: 1, russianName: 1 }
         ).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findProcedureError', error);
         });
         const procedureMap = new Map(
             procedures.map((p) => [p.englishName, p.russianName])

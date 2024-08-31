@@ -19,7 +19,9 @@ class PriceCommand {
      * Загружает изображения из базы данных и отправляет их пользователю в виде медиагруппы.
      */
     async handle() {
-        const prices = await Price.find();
+        const prices = await Price.find().catch((error) => {
+            throw new DataBaseError('findPriceError', error);
+        });
         const priceUrls = prices.map((prices) => prices.imageUrl);
 
         const { telegram, chat } = this.ctx;

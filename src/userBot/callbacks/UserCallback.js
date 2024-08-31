@@ -12,7 +12,7 @@ class UserCallback {
         const { id: chatId } = ctx.chat;
 
         let user = await User.findOne({ id: userId }).catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('findUserError', error);
         });
 
         if (!user) {
@@ -22,7 +22,7 @@ class UserCallback {
             user.chatId = chatId;
         }
         await user.save().catch((error) => {
-            throw new DataBaseError('searchAppointmentError', error);
+            throw new DataBaseError('saveUserError', error);
         });
         logger.debug(
             'Информация о пользователе успешно сохранена в базу данных'

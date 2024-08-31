@@ -1,5 +1,6 @@
 const Record = require('../../db/models/record');
 const Procedure = require('../../db/models/procedure');
+const DataBaseError = require('../../errors/dataBaseError');
 const moment = require('moment');
 /**
  * Сервис для отправки напоминаний пользователям о предстоящих записях на процедуры.
@@ -42,9 +43,13 @@ class ReminderService {
             {
                 $unwind: '$user',
             },
-        ]);
+        ]).catch((error) => {
+            throw new DataBaseError('findRecordError', error);
+        });
 
-        const procedures = await Procedure.find();
+        const procedures = await Procedure.find().catch((error) => {
+            throw new DataBaseError('findProcedureError', error);
+        });
         const proceduresByEnglishName = procedures.reduce((acc, proc) => {
             acc[proc.englishName] = proc;
             return acc;
