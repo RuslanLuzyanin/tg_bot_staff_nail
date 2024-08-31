@@ -20,6 +20,7 @@ class UserBot {
     constructor() {
         this.bot = new Telegraf(config.telegramToken);
         this.logger = new Log();
+        this.mongoClient = null;
         ErrorHandler.setLogger(this.logger);
     }
 
@@ -46,19 +47,18 @@ class UserBot {
      * Устанавливает соединение с MongoDB.
      */
     async connectToMongoDB() {
+        this.mongoClient = await MongoClient.connect(config.uri);
         await mongoose.connect(config.uri);
         this.logger.info('Подключение к MongoDB успешно установлено');
-
-        const client = await MongoClient.connect(config.uri);
-        this.logger.info('Соединение с MongoDB установлено');
     }
 
     /**
      * Настраивает middleware для хранения сессий в MongoDB.
      */
     async setupSessionMiddleware() {
-        const db = (await MongoClient.connect(config.uri)).db();
-        this.bot.use(session(db, { collectionName: 'sessions' }));
+        this.bot.use(
+            session(this.mongoClient.db(), { collectionName: 'sessions' })
+        );
         this.logger.info('Middleware сессий установлен');
     }
 
@@ -80,10 +80,7 @@ class UserBot {
                     await ctx.deleteMessage();
                     await new Command(ctx).handle();
                 } catch (error) {
-                    ErrorHandler.handleError(
-                        { code: 'commandExecutionError', error },
-                        ctx
-                    );
+                    ErrorHandler.handleError(error, ctx);
                 }
             });
         }
@@ -98,10 +95,7 @@ class UserBot {
             try {
                 await callbackHandler.handle(ctx, this.logger, this.bot);
             } catch (error) {
-                ErrorHandler.handleError(
-                    { code: 'callbackExecutionError', error },
-                    ctx
-                );
+                ErrorHandler.handleError(error, ctx);
             }
         });
     }

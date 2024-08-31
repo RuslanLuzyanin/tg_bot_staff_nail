@@ -1,27 +1,24 @@
+const CallbackError = require('../errors/callbackError');
+const MenuError = require('../errors/menuError');
+
 class ErrorHandler {
-    static ERRORS = {
-        unknownEnvKey: 'Неизвестный ключ ENV',
-        unknownCallback: 'Неизвестный колбек',
-        searchAppointmentError: 'Ошибка при поиске записей',
-        callbackExecutionError: 'Ошибка при обработке callback-запроса',
-        commandExecutionError: 'Ошибка при обработке команды',
-        validateMenuDataMassiveError: 'MenuData должен быть массивом объектов',
-        validateMenuDataTextError:
-            'Каждый элемент MenuData должен иметь свойство text',
-        validateMenuDataCallbackError:
-            'Каждый элемент MenuData должен иметь свойство callback или url',
-    };
-
     static async handleError(error, ctx) {
-        const errorMessage =
-            this.ERRORS[error.code] || this.ERRORS.unexpectedError;
+        this.logger.error(error.stack);
 
-        this.logger.error(errorMessage, error.stack);
+        let message;
+        if (error instanceof CallbackError) {
+            message =
+                'Извините, произошла ошибка при обработке callback-запроса. Пожалуйста, попробуйте еще раз.';
+        } else if (error instanceof MenuError) {
+            message =
+                'Извините, произошла ошибка с данными меню. Пожалуйста, попробуйте еще раз.';
+        } else {
+            message =
+                'Извините, произошла неизвестная ошибка. Пожалуйста, попробуйте еще раз.';
+        }
 
-        const message = await ctx.reply(
-            'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.'
-        );
-        setTimeout(() => ctx.deleteMessage(message.message_id), 3000);
+        const response = await ctx.reply(message);
+        setTimeout(() => ctx.deleteMessage(response.message_id), 3000);
     }
 
     static setLogger(logger) {

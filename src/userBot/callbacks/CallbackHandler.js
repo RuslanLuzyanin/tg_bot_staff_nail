@@ -1,9 +1,11 @@
 const MenuCallback = require('./menuCallback');
 const AppointmentCallback = require('./appointmentCallback');
 const UserCallback = require('./userCallback');
+const CallbackError = require('../../errors/callbackError');
 
 const callbackCodes = {
     MENU_MAIN: 'menu_to_main_menu',
+    MENU_SLOTS: 'menu_to_slot_menu',
     MENU_PROCEDURE: 'menu_to_procedure_menu',
     MENU_MONTH: 'menu_to_month_menu',
     MENU_DAY: 'menu_to_day_menu',
@@ -11,6 +13,8 @@ const callbackCodes = {
     MENU_CANCEL_APPOINTMENT: 'menu_to_cancel_appointment',
     MENU_CHECK_APPOINTMENT: 'menu_to_check_appointment',
     USER_VERIFICATION: 'user_verification',
+    SELECT_SLOT: 'app_select_slot_',
+    CHANGE_SLOT: 'change_select_slot',
     SELECT_PROCEDURE: 'app_select_procedure_',
     SELECT_MONTH: 'app_select_month_',
     SELECT_DAY: 'app_select_day_',
@@ -33,13 +37,22 @@ const callbackActions = {
         MenuCallback.createCheckAppointmentsMenu,
     ],
     [callbackCodes.MENU_MAIN]: [MenuCallback.createMainMenu],
-    [callbackCodes.MENU_PROCEDURE]: [
+    [callbackCodes.MENU_SLOTS]: [
         AppointmentCallback.handleGetAppointments,
-        MenuCallback.createProcedureMenu,
+        MenuCallback.createSlotMenu,
     ],
+    [callbackCodes.MENU_PROCEDURE]: [MenuCallback.createProcedureMenu],
     [callbackCodes.MENU_MONTH]: [MenuCallback.createMonthMenu],
     [callbackCodes.MENU_DAY]: [MenuCallback.createDayMenu],
     [callbackCodes.MENU_TIME]: [MenuCallback.createTimeMenu],
+    [callbackCodes.CHANGE_SLOT]: [
+        AppointmentCallback.clearSelectedSlot,
+        MenuCallback.createSlotMenu,
+    ],
+    [callbackCodes.SELECT_SLOT]: [
+        AppointmentCallback.handleSelectSlot,
+        MenuCallback.createProcedureMenu,
+    ],
     [callbackCodes.SELECT_PROCEDURE]: [
         AppointmentCallback.handleSelectProcedure,
         MenuCallback.createMonthMenu,
@@ -83,7 +96,7 @@ class CallbackHandler {
             return;
         }
 
-        throw new Error('unknownCallback');
+        throw new CallbackError('unknownCallback');
     }
 
     async executeCallbacks(callbacks, ctx, logger, bot) {

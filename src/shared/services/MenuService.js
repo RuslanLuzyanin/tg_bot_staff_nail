@@ -1,4 +1,5 @@
 const { chunk } = require('lodash');
+const MenuError = require('../../errors/menuError');
 
 class MenuService {
     /**
@@ -36,16 +37,16 @@ class MenuService {
      */
     static validateMenuData(menuData) {
         if (!Array.isArray(menuData)) {
-            throw new Error('validateMenuDataMassiveError');
+            throw new MenuError('validateMenuDataMassiveError');
         }
 
         for (const buttonData of menuData) {
             if (!buttonData.text) {
-                throw new Error('validateMenuDataTextError');
+                throw new MenuError('validateMenuDataTextError');
             }
 
             if (!buttonData.callback && !buttonData.url) {
-                throw new Error('validateMenuDataCallbackError');
+                throw new MenuError('validateMenuDataCallbackError');
             }
         }
     }

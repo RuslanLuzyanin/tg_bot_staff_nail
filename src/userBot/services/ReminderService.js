@@ -1,6 +1,5 @@
 const Record = require('../../db/models/record');
 const Procedure = require('../../db/models/procedure');
-const User = require('../../db/models/user');
 const moment = require('moment');
 /**
  * Сервис для отправки напоминаний пользователям о предстоящих записях на процедуры.
@@ -26,7 +25,23 @@ class ReminderService {
                     },
                 },
             },
-            { $group: { _id: '$userId', appointments: { $push: '$$ROOT' } } },
+            {
+                $group: {
+                    _id: '$userId',
+                    appointments: { $push: '$$ROOT' },
+                },
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: 'id',
+                    as: 'user',
+                },
+            },
+            {
+                $unwind: '$user',
+            },
         ]);
 
         const procedures = await Procedure.find();
@@ -35,15 +50,8 @@ class ReminderService {
             return acc;
         }, {});
 
-        const users = await Promise.all(
-            records.map(async ({ _id: userId, appointments }) => {
-                const user = await User.findOne({ id: userId });
-                return { user, appointments };
-            })
-        );
-
         const messagePromises = [];
-        for (const { user, appointments } of users) {
+        for (const { user, appointments } of records) {
             let skipCount = 0;
             for (const appointment of appointments) {
                 if (skipCount > 0) {

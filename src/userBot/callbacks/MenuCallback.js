@@ -1,11 +1,13 @@
 const { Markup } = require('telegraf');
 const MenuService = require('../../shared/services/menuService');
 const FilterService = require('../services/filterService');
+const GetSlotHoursService = require('../services/getSlotHours');
 const Procedure = require('../../db/models/procedure');
 const WorkingTime = require('../../db/models/workingTime');
 const Record = require('../../db/models/record');
 const moment = require('moment');
-const config = require('../../config/config');
+const { receptionAddress } = require('../../config/config');
+const DataBaseError = require('../../errors/dataBaseError');
 
 class MenuCallback {
     /**
@@ -13,9 +15,9 @@ class MenuCallback {
      *
      * Возвращает пользователя в главное меню.
      */
-    static async createMainMenu(ctx, logger, bot) {
+    static async createMainMenu(ctx, logger) {
         const menuData = [
-            { text: 'Запись на приём', callback: 'menu_to_procedure_menu' },
+            { text: 'Запись на приём', callback: 'menu_to_slot_menu' },
             { text: 'Отменить запись', callback: 'menu_to_cancel_appointment' },
             { text: 'Проверить запись', callback: 'menu_to_check_appointment' },
         ];
@@ -28,12 +30,66 @@ class MenuCallback {
     }
 
     /**
-     * Обрабатывает колбек "Записаться на приём".
+     * Создаёт меню выбора слотов.
      *
-     * Запрашивает у пользователя выбор процедуры из базы данных.
+     * Выбор слотов представляется из 4-ёх (утро, день, вечерь, любые).
+     */
+    static async createSlotMenu(ctx, logger) {
+        const { selectedSlot } = ctx.session;
+        const slotNames = {
+            morning: 'Утро',
+            day: 'День',
+            evening: 'Вечер',
+            any: 'Любые',
+        };
+        if (selectedSlot) {
+            const russianSlotName = slotNames[selectedSlot];
+            const confirmMessage = `Вы выбрали слот ${russianSlotName}. Подтвердить?`;
+            const confirmKeyboard = Markup.inlineKeyboard([
+                Markup.button.callback('Подвердить', 'app_select_slot_confirm'),
+                Markup.button.callback('Изменить', 'change_select_slot'),
+                Markup.button.callback('Назад', 'menu_to_main_menu'),
+            ]);
+            await ctx.editMessageText(confirmMessage, confirmKeyboard);
+            return;
+        }
+
+        const menuData = [
+            {
+                text: slotNames.morning,
+                callback: 'app_select_slot_morning',
+            },
+            {
+                text: slotNames.day,
+                callback: 'app_select_slot_day',
+            },
+            {
+                text: slotNames.evening,
+                callback: 'app_select_slot_evening',
+            },
+            {
+                text: slotNames.any,
+                callback: 'app_select_slot_any',
+            },
+        ];
+        menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
+
+        const keyboard = Markup.inlineKeyboard(
+            MenuService.createMenu(menuData)
+        );
+        await ctx.editMessageText(
+            'Выберите удобный для Вас слот для записи:',
+            keyboard
+        );
+        logger.debug('Меню выбора слота создано');
+    }
+
+    /**
+     * Создаёт меню выбора процедуры.
+     *
      * Если у пользователя уже есть 3 записи, выводит сообщение и не создает меню.
      */
-    static async createProcedureMenu(ctx, logger, bot) {
+    static async createProcedureMenu(ctx, logger) {
         const { appointments } = ctx.session;
         if (appointments.length >= 3) {
             const messageData = [
@@ -46,13 +102,15 @@ class MenuCallback {
             return;
         }
 
-        const procedures = await Procedure.find({});
+        const procedures = await Procedure.find({}).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
+        });
         const menuData = procedures.map((procedure) => ({
             text: procedure.russianName,
             callback: `app_select_procedure_${procedure.englishName}`,
         }));
 
-        menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
+        menuData.push({ text: 'Назад', callback: 'menu_to_slot_menu' });
 
         const keyboard = Markup.inlineKeyboard(
             MenuService.createMenu(menuData)
@@ -66,7 +124,7 @@ class MenuCallback {
      *
      * Выбор месяца представляется из 2-ух (текущий и следующий).
      */
-    static async createMonthMenu(ctx, logger, bot) {
+    static async createMonthMenu(ctx, logger) {
         const currentDate = moment();
         const isLastDayOfMonth =
             currentDate.date() === currentDate.daysInMonth();
@@ -120,8 +178,9 @@ class MenuCallback {
      * месяц текущий, и с 1-го дня, если следующий.
      *
      */
-    static async createDayMenu(ctx, logger, bot) {
-        const { selectedMonth, selectedYear } = ctx.session;
+    static async createDayMenu(ctx, logger) {
+        const { selectedMonth, selectedYear, selectedProcedure, selectedSlot } =
+            ctx.session;
         const currentDate = moment();
         let startDate;
 
@@ -137,32 +196,65 @@ class MenuCallback {
         const endDate = moment(startDate).endOf('month');
         const menuData = [];
 
-        const workingTime = await WorkingTime.findOne();
+        const workingTime = await WorkingTime.findOne().catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
+        });
         const { startTime, endTime } = workingTime;
         const totalAvailableSlots = moment(endTime, 'HH:mm').diff(
             moment(startTime, 'HH:mm'),
             'hours'
         );
 
-        const { selectedProcedure } = ctx.session;
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
+        }).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
         });
         const { duration: procedureDuration } = procedure;
 
         while (startDate.isSameOrBefore(endDate)) {
             const formattedDate = startDate.format('DD.MM.YYYY');
-            const occupiedTimes = await Record.find({
-                date: {
-                    $gte: startDate.toDate(),
-                    $lt: moment(startDate).add(1, 'day').toDate(),
-                },
-            });
+            let isDateAvailable = false;
 
-            if (
-                occupiedTimes.length <=
-                totalAvailableSlots - procedureDuration
-            ) {
+            if (selectedSlot === 'any') {
+                const occupiedTimes = await Record.find({
+                    date: {
+                        $gte: startDate.toDate(),
+                        $lt: moment(startDate).add(1, 'day').toDate(),
+                    },
+                }).catch((error) => {
+                    throw new DataBaseError('searchAppointmentError', error);
+                });
+
+                if (
+                    occupiedTimes.length <=
+                    totalAvailableSlots - procedureDuration
+                ) {
+                    isDateAvailable = true;
+                }
+            } else {
+                const [slotStart, slotEnd] = GetSlotHoursService.getSlotHours(
+                    selectedSlot,
+                    startTime,
+                    endTime
+                );
+
+                const records = await Record.find({
+                    date: startDate.toDate(),
+                    time: {
+                        $gte: slotStart.format('HH:mm'),
+                        $lt: slotEnd.format('HH:mm'),
+                    },
+                }).catch((error) => {
+                    throw new DataBaseError('searchAppointmentError', error);
+                });
+
+                if (records.length < 2) {
+                    isDateAvailable = true;
+                }
+            }
+
+            if (isDateAvailable) {
                 menuData.push({
                     text: startDate
                         .locale('ru')
@@ -191,11 +283,13 @@ class MenuCallback {
      * Выбор времени представляется кнопками с часами, соответствующими рабочим часам.
      *
      */
-    static async createTimeMenu(ctx, logger, bot) {
+    static async createTimeMenu(ctx, logger) {
         const { selectedProcedure, selectedDate } = ctx.session;
         const workingTime = await WorkingTime.findOne();
         const procedure = await Procedure.findOne({
             englishName: selectedProcedure,
+        }).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
         });
         const { duration: procedureDuration } = procedure;
 
@@ -204,8 +298,7 @@ class MenuCallback {
         })
             .select('time')
             .catch((error) => {
-                new Error('searchAppointmentError', error);
-                return [];
+                throw new DataBaseError('searchAppointmentError', error);
             });
 
         const occupiedTimeArray = occupiedTimes.map(({ time }) =>
@@ -240,7 +333,7 @@ class MenuCallback {
      * Данные берутся из сессий.
      *
      */
-    static async createConfirmationMenu(ctx, logger, bot) {
+    static async createConfirmationMenu(ctx, logger) {
         const {
             selectedDate,
             selectedTime,
@@ -252,6 +345,8 @@ class MenuCallback {
 
         const procedure = await Procedure.findOne({
             englishName: selectedProcedureEnglishName,
+        }).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
         });
         const selectedProcedure = procedure.russianName;
 
@@ -273,7 +368,7 @@ class MenuCallback {
     /**
      * Создаёт меню с процедурами, на которые записан пользователь.
      */
-    static async createCheckAppointmentsMenu(ctx, logger, bot) {
+    static async createCheckAppointmentsMenu(ctx, logger) {
         const { appointments } = ctx.session;
 
         if (!appointments || appointments.length === 0) {
@@ -285,12 +380,14 @@ class MenuCallback {
         const procedures = await Procedure.find(
             {},
             { englishName: 1, russianName: 1 }
-        );
+        ).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
+        });
         const procedureMap = new Map(
             procedures.map((p) => [p.englishName, p.russianName])
         );
 
-        let message = `Ждём Вас по адресу: ${config.receptionAddress}. Ваши записи на процедуры:\n`;
+        let message = `Ждём Вас по адресу: ${receptionAddress}. Ваши записи на процедуры:\n`;
         for (const { procedure, date, time } of appointments) {
             const formattedDate = moment(date).locale('ru').format('D MMM');
             message += `- ${procedureMap.get(
@@ -311,7 +408,7 @@ class MenuCallback {
     /**
      * Создаёт меню для отмены записей пользователя.
      */
-    static async createCancelAppointmentsMenu(ctx, logger, bot) {
+    static async createCancelAppointmentsMenu(ctx, logger) {
         const { appointments } = ctx.session;
 
         if (!appointments || appointments.length === 0) {
@@ -323,7 +420,9 @@ class MenuCallback {
         const procedures = await Procedure.find(
             {},
             { englishName: 1, russianName: 1 }
-        );
+        ).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
+        });
         const procedureMap = new Map(
             procedures.map((p) => [p.englishName, p.russianName])
         );

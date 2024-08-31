@@ -2,13 +2,38 @@ const Record = require('../../db/models/record');
 const Procedure = require('../../db/models/procedure');
 const moment = require('moment');
 const config = require('../../config/config');
+const DataBaseError = require('../../errors/dataBaseError');
 
 class AppointmentCallback {
+    /**
+     * Обрабатывает колбек выбора слота.
+     * Извлекает имя слота из callbackData и сохраняет его в сессию.
+     */
+    static async handleSelectSlot(ctx, logger) {
+        const { callbackQuery, session } = ctx;
+        const slotName = callbackQuery.data.split('_').slice(3).join('_');
+        if (slotName !== 'confirm') {
+            session.selectedSlot = slotName;
+            logger.debug(`Слот "${slotName}" выбран`);
+        } else {
+            logger.debug(`Слот подтвержден`);
+        }
+    }
+
+    /**
+     * Очищает выбранный слот из сессии.
+     */
+    static async clearSelectedSlot(ctx, logger) {
+        const { session } = ctx;
+        session.selectedSlot = null;
+        logger.debug('Выбранный слот очищен из сессии');
+    }
+
     /**
      * Обрабатывает колбек выбора процедуры.
      * Извлекает имя процедуры из callbackData и сохраняет его в сессию.
      */
-    static async handleSelectProcedure(ctx, logger, bot) {
+    static async handleSelectProcedure(ctx, logger) {
         const { callbackQuery, session } = ctx;
         const procedureName = callbackQuery.data.split('_').slice(3).join('_');
         session.selectedProcedure = procedureName;
@@ -19,7 +44,7 @@ class AppointmentCallback {
      * Обрабатывает колбек выбора месяца.
      * Извлекает месяц и год из callbackData и сохраняет их в сессию.
      */
-    static async handleSelectMonth(ctx, logger, bot) {
+    static async handleSelectMonth(ctx, logger) {
         const { callbackQuery, session } = ctx;
         const [, , , month, year] = callbackQuery.data.split('_');
         session.selectedMonth = month;
@@ -31,7 +56,7 @@ class AppointmentCallback {
      * Обрабатывает колбек выбора дня.
      * Извлекает день, месяц и год из callbackData и сохраняет их в сессию.
      */
-    static async handleSelectDay(ctx, logger, bot) {
+    static async handleSelectDay(ctx, logger) {
         const { callbackQuery, session } = ctx;
         const [, , , dateString] = callbackQuery.data.split('_');
         const [day, month, year] = dateString.split('.');
@@ -43,7 +68,7 @@ class AppointmentCallback {
      * Обрабатывает колбек выбора времени.
      * Извлекает время из callbackData и сохраняет его в сессию.
      */
-    static async handleSelectTime(ctx, logger, bot) {
+    static async handleSelectTime(ctx, logger) {
         const { callbackQuery, session } = ctx;
         const [, , , timeString] = callbackQuery.data.split('_');
         session.selectedTime = timeString;
@@ -68,6 +93,8 @@ class AppointmentCallback {
 
         const procedure = await Procedure.findOne({
             englishName: selectedProcedureEnglishName,
+        }).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
         });
         const selectedProcedure = procedure.russianName;
         const duration = procedure.duration;
@@ -97,7 +124,9 @@ class AppointmentCallback {
                 procedure: selectedProcedureEnglishName,
             });
 
-            await newRecord.save();
+            await newRecord.save().catch((error) => {
+                throw new DataBaseError('searchAppointmentError', error);
+            });
             logger.info(
                 `Запись на процедуру "${selectedProcedure}" в ${recordTime} сохранена`
             );
@@ -107,17 +136,23 @@ class AppointmentCallback {
     /**
      * Загружает записи пользователя из базы данных в сессию.
      */
-    static async handleGetAppointments(ctx, logger, bot) {
+    static async handleGetAppointments(ctx, logger) {
         const { from, session } = ctx;
         const userId = from.id.toString();
-        const records = await Record.find({ userId }).sort({
-            date: 1,
-            time: 1,
-        });
+        const records = await Record.find({ userId })
+            .sort({
+                date: 1,
+                time: 1,
+            })
+            .catch((error) => {
+                throw new DataBaseError('searchAppointmentError', error);
+            });
 
-        const procedures = await Procedure.find().select(
-            'englishName duration'
-        );
+        const procedures = await Procedure.find()
+            .select('englishName duration')
+            .catch((error) => {
+                throw new DataBaseError('searchAppointmentError', error);
+            });
         const procedureMap = procedures.reduce((map, proc) => {
             map[proc.englishName] = proc.duration;
             return map;
@@ -159,6 +194,8 @@ class AppointmentCallback {
             .split('_');
         const procedureData = await Procedure.findOne({
             englishName: procedure,
+        }).catch((error) => {
+            throw new DataBaseError('searchAppointmentError', error);
         });
         const { duration: procedureDuration } = procedureData;
         const [day, month, year] = dateString.split('.');
@@ -174,6 +211,8 @@ class AppointmentCallback {
                 date: formattedDate,
                 time: recordTime,
                 procedure,
+            }).catch((error) => {
+                throw new DataBaseError('searchAppointmentError', error);
             });
             if (recordToDelete) {
                 logger.info(
