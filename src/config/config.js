@@ -1,5 +1,3 @@
-const StartError = require('../errors/startError');
-
 class Config {
     constructor() {
         require('dotenv').config();
@@ -8,7 +6,7 @@ class Config {
     get(key) {
         const value = process.env[key];
         if (!value) {
-            throw new StartError('unknownEnvKey');
+            throw new Error('unknownEnvKeyError');
         }
         return value;
     }

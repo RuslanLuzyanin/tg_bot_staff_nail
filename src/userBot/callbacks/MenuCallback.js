@@ -8,7 +8,6 @@ const Record = require('../../db/models/record');
 const moment = require('moment');
 const { receptionAddress } = require('../../config/config');
 const CheckAppointmentService = require('../services/checkAppointmentService');
-const AppointmentError = require('../../errors/appointmentError');
 
 class MenuCallback {
     /**
@@ -93,14 +92,7 @@ class MenuCallback {
     static async createProcedureMenu(ctx, logger) {
         const { appointments } = ctx.session;
         if (appointments.length >= 3) {
-            const messageData = [
-                `У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись.`,
-                `Чтобы создать новую запись, отменить одну из существующих.`,
-            ].join('\n');
-
-            const message = await ctx.reply(messageData);
-            setTimeout(() => ctx.deleteMessage(message.message_id), 3000);
-            return;
+            throw new Error('recordLimitError');
         }
 
         const procedures = await Procedure.find({});
@@ -339,7 +331,7 @@ class MenuCallback {
             duration
         );
         if (conflictRecords > 0) {
-            throw new AppointmentError('appointmentConflictError');
+            throw new Error('appointmentConflictError');
         }
         const message = `Вы хотели бы записаться на ${formattedDate} в ${selectedTime}, Ваша процедура - ${selectedProcedure}?`;
 

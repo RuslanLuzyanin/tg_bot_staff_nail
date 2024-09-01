@@ -1,7 +1,6 @@
 const MenuCallback = require('./menuCallback');
 const AppointmentCallback = require('./appointmentCallback');
 const UserCallback = require('./userCallback');
-const CallbackError = require('../../errors/callbackError');
 
 const callbackCodes = {
     MENU_MAIN: 'menu_to_main_menu',
@@ -96,7 +95,7 @@ class CallbackHandler {
             return;
         }
 
-        throw new CallbackError('unknownCallback');
+        throw new Error('unknownCallbackError');
     }
 
     async executeCallbacks(callbacks, ctx, logger, bot) {

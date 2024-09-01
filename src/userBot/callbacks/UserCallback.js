@@ -12,6 +12,10 @@ class UserCallback {
 
         let user = await User.findOne({ id: userId });
 
+        if (user && user.isBanned) {
+            throw new Error('userIsBannedError');
+        }
+
         if (!user) {
             user = new User({ id: userId, name: userName, chatId: chatId });
         } else {

@@ -1,28 +1,29 @@
-const AppointmentError = require('../errors/appointmentError');
-const CallbackError = require('../errors/callbackError');
-const MenuError = require('../errors/menuError');
-
 class ErrorHandler {
+    static ERRORS = {
+        unknownEnvKeyError: 'Неизвестный ключ ENV',
+        unknownCallbackError: 'Неизвестный колбек',
+        userIsBannedError: 'Вы заблокированы',
+        recordLimitError:
+            'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись',
+        appointmentConflictError:
+            'Запись конфликтует с созданными рание записями',
+        validateMenuDataMassiveError: 'MenuData должен быть массивом объектов',
+        validateMenuDataTextError:
+            'Каждый элемент MenuData должен иметь свойство text',
+        validateMenuDataCallbackError:
+            'Каждый элемент MenuData должен иметь свойство callback или url',
+    };
+
     static async handleError(error, ctx) {
         this.logger.error(error.stack);
 
-        let message;
-        if (error instanceof CallbackError) {
-            message =
-                'Извините, произошла ошибка при обработке callback-запроса. Пожалуйста, попробуйте еще раз.';
-        } else if (error instanceof AppointmentError) {
-            message =
-                'Извините, это время занято. Пожалуйста, попробуйте еще раз.';
-        } else if (error instanceof MenuError) {
-            message =
-                'Извините, произошла ошибка с данными меню. Пожалуйста, попробуйте еще раз.';
-        } else {
-            message =
-                'Извините, произошла неизвестная ошибка. Пожалуйста, попробуйте еще раз.';
-        }
+        const errorMessage = this.ERRORS[error.message];
+        const message = errorMessage
+            ? `Извините, произошла ошибка: ${errorMessage}. Пожалуйста, попробуйте еще раз.`
+            : 'Извините, произошла ошибка. Пожалуйста, попробуйте еще раз.';
 
         const response = await ctx.reply(message);
-        setTimeout(() => ctx.deleteMessage(response.message_id), 3000);
+        setTimeout(() => ctx.deleteMessage(response.message_id), 5000);
     }
 
     static setLogger(logger) {

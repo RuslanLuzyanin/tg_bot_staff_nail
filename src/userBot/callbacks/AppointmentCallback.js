@@ -1,7 +1,6 @@
 const Record = require('../../db/models/record');
 const Procedure = require('../../db/models/procedure');
 const CheckAppointmentService = require('../services/checkAppointmentService');
-const AppointmentError = require('../../errors/appointmentError');
 const moment = require('moment');
 const config = require('../../config/config');
 
@@ -103,7 +102,7 @@ class AppointmentCallback {
             duration
         );
         if (conflictRecords > 0) {
-            throw new AppointmentError('appointmentConflictError');
+            throw new Error('appointmentConflictError');
         }
         const messageData = [
             `Вы записались на ${formattedDate} в ${selectedTime},`,
