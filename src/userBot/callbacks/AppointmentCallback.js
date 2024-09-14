@@ -1,5 +1,5 @@
-const Record = require('../../db/models/record');
-const Procedure = require('../../db/models/procedure');
+const Record = require('../../database/models/record');
+const Procedure = require('../../database/models/procedure');
 const CheckAppointmentService = require('../services/checkAppointmentService');
 const moment = require('moment');
 const config = require('../../config/config');
@@ -82,11 +82,7 @@ class AppointmentCallback {
     static async handleConfirm(ctx, logger, bot) {
         const { from, session } = ctx;
         const userId = from.id.toString();
-        const {
-            selectedDate,
-            selectedTime,
-            selectedProcedure: selectedProcedureEnglishName,
-        } = session;
+        const { selectedDate, selectedTime, selectedProcedure: selectedProcedureEnglishName } = session;
 
         const selectedDateMoment = moment(selectedDate, 'DD.MM.YYYY');
         const formattedDate = selectedDateMoment.locale('ru').format('D MMM');
@@ -108,19 +104,18 @@ class AppointmentCallback {
             `Вы записались на ${formattedDate} в ${selectedTime},`,
             `Ваша процедура - ${selectedProcedure}.`,
             `Процедура будет проходить по адресу: ${config.receptionAddress}`,
+            `При опоздании более чем 15 минут - запись обнуляется`,
         ].join('\n');
 
         await ctx.reply(messageData);
 
         await bot.telegram.sendMessage(
-            config.userId,
+            config.adminId,
             `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} создал запись на ${formattedDate}, ${selectedTime}`
         );
 
         for (let i = 0; i < duration; i++) {
-            const recordTime = moment(selectedTime, 'HH:mm')
-                .add(i, 'hours')
-                .format('HH:mm');
+            const recordTime = moment(selectedTime, 'HH:mm').add(i, 'hours').format('HH:mm');
 
             const newRecord = new Record({
                 userId: userId,
@@ -130,9 +125,7 @@ class AppointmentCallback {
             });
 
             await newRecord.save();
-            logger.info(
-                `Запись на процедуру "${selectedProcedure}" в ${recordTime} сохранена`
-            );
+            logger.info(`Запись на процедуру "${selectedProcedure}" в ${recordTime} сохранена`);
         }
     }
 
@@ -147,9 +140,7 @@ class AppointmentCallback {
             time: 1,
         });
 
-        const procedures = await Procedure.find().select(
-            'englishName duration'
-        );
+        const procedures = await Procedure.find().select('englishName duration');
         const procedureMap = procedures.reduce((map, proc) => {
             map[proc.englishName] = proc.duration;
             return map;
@@ -186,9 +177,7 @@ class AppointmentCallback {
      */
     static async handleCancel(ctx, logger, bot) {
         const { callbackQuery, from } = ctx;
-        const [, , procedure, dateString, time] = callbackQuery.data
-            .slice(1)
-            .split('_');
+        const [, , procedure, dateString, time] = callbackQuery.data.slice(1).split('_');
         const procedureData = await Procedure.findOne({
             englishName: procedure,
         });
@@ -198,9 +187,7 @@ class AppointmentCallback {
         const userId = from.id.toString();
 
         for (let i = 0; i < procedureDuration; i++) {
-            const recordTime = moment(time, 'HH:mm')
-                .add(i, 'hours')
-                .format('HH:mm');
+            const recordTime = moment(time, 'HH:mm').add(i, 'hours').format('HH:mm');
             const recordToDelete = await Record.findOneAndDelete({
                 userId,
                 date: formattedDate,
@@ -214,7 +201,7 @@ class AppointmentCallback {
             }
         }
         await bot.telegram.sendMessage(
-            config.userId,
+            config.adminId,
             `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} удалил запись на ${dateString}, ${time}`
         );
 

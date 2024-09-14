@@ -11,12 +11,20 @@ class Config {
         return value;
     }
 
-    get telegramToken() {
+    get userBotToken() {
         return this.get('USER_BOT_TOKEN');
     }
 
-    get userId() {
+    get adminBotToken() {
+        return this.get('ADMIN_BOT_TOKEN');
+    }
+
+    get adminId() {
         return this.get('USER_ADMIN_ID');
+    }
+
+    get regId() {
+        return this.get('USER_REG_ID');
     }
 
     get uri() {

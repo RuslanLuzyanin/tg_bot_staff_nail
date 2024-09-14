@@ -1,4 +1,4 @@
-const Price = require('../../db/models/price');
+const Price = require('../../database/models/price');
 
 /**
  * Класс, обрабатывающий команду /price.
@@ -19,18 +19,22 @@ class PriceCommand {
      * Загружает изображения из базы данных и отправляет их пользователю в виде медиагруппы.
      */
     async handle() {
-        const prices = await Price.find();
-        const priceUrls = prices.map((prices) => prices.imageUrl);
-
+        const prices = await Price.find().sort({ key: 1 });
         const { telegram, chat } = this.ctx;
 
-        const replyPromise = this.ctx.reply('Мои цены:');
-        const mediaGroupPromise = telegram.sendMediaGroup(
-            chat.id,
-            priceUrls.map((url) => ({ type: 'photo', media: url }))
-        );
+        const mediaGroup = prices
+            .filter((price) => price.image)
+            .map((price) => ({
+                type: 'photo',
+                media: { source: price.image },
+            }));
 
-        await Promise.all([replyPromise, mediaGroupPromise]);
+        if (mediaGroup.length > 0) {
+            await this.ctx.reply('Мои цены:');
+            await telegram.sendMediaGroup(chat.id, mediaGroup);
+        } else {
+            await this.ctx.reply('Прайс-лист пока не загружен.');
+        }
     }
 }
 

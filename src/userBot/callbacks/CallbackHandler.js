@@ -23,10 +23,7 @@ const callbackCodes = {
 };
 
 const callbackActions = {
-    [callbackCodes.USER_VERIFICATION]: [
-        UserCallback.handleVerification,
-        MenuCallback.createMainMenu,
-    ],
+    [callbackCodes.USER_VERIFICATION]: [UserCallback.handleVerification, MenuCallback.createMainMenu],
     [callbackCodes.MENU_CANCEL_APPOINTMENT]: [
         AppointmentCallback.handleGetAppointments,
         MenuCallback.createCancelAppointmentsMenu,
@@ -36,46 +33,26 @@ const callbackActions = {
         MenuCallback.createCheckAppointmentsMenu,
     ],
     [callbackCodes.MENU_MAIN]: [MenuCallback.createMainMenu],
-    [callbackCodes.MENU_SLOTS]: [
-        AppointmentCallback.handleGetAppointments,
-        MenuCallback.createSlotMenu,
-    ],
+    [callbackCodes.MENU_SLOTS]: [AppointmentCallback.handleGetAppointments, MenuCallback.createSlotMenu],
     [callbackCodes.MENU_PROCEDURE]: [MenuCallback.createProcedureMenu],
     [callbackCodes.MENU_MONTH]: [MenuCallback.createMonthMenu],
     [callbackCodes.MENU_DAY]: [MenuCallback.createDayMenu],
     [callbackCodes.MENU_TIME]: [MenuCallback.createTimeMenu],
-    [callbackCodes.CHANGE_SLOT]: [
-        AppointmentCallback.clearSelectedSlot,
-        MenuCallback.createSlotMenu,
-    ],
-    [callbackCodes.SELECT_SLOT]: [
-        AppointmentCallback.handleSelectSlot,
-        MenuCallback.createProcedureMenu,
-    ],
+    [callbackCodes.CHANGE_SLOT]: [AppointmentCallback.clearSelectedSlot, MenuCallback.createSlotMenu],
+    [callbackCodes.SELECT_SLOT]: [AppointmentCallback.handleSelectSlot, MenuCallback.createProcedureMenu],
     [callbackCodes.SELECT_PROCEDURE]: [
         AppointmentCallback.handleSelectProcedure,
         MenuCallback.createMonthMenu,
     ],
-    [callbackCodes.SELECT_MONTH]: [
-        AppointmentCallback.handleSelectMonth,
-        MenuCallback.createDayMenu,
-    ],
-    [callbackCodes.SELECT_DAY]: [
-        AppointmentCallback.handleSelectDay,
-        MenuCallback.createTimeMenu,
-    ],
+    [callbackCodes.SELECT_MONTH]: [AppointmentCallback.handleSelectMonth, MenuCallback.createDayMenu],
+    [callbackCodes.SELECT_DAY]: [AppointmentCallback.handleSelectDay, MenuCallback.createTimeMenu],
     [callbackCodes.SELECT_TIME]: [
+        UserCallback.handleVerification,
         AppointmentCallback.handleSelectTime,
         MenuCallback.createConfirmationMenu,
     ],
-    [callbackCodes.CONFIRM_APPOINTMENT]: [
-        AppointmentCallback.handleConfirm,
-        MenuCallback.createMainMenu,
-    ],
-    [callbackCodes.CANCEL_APPOINTMENT]: [
-        AppointmentCallback.handleCancel,
-        MenuCallback.createMainMenu,
-    ],
+    [callbackCodes.CONFIRM_APPOINTMENT]: [AppointmentCallback.handleConfirm, MenuCallback.createMainMenu],
+    [callbackCodes.CANCEL_APPOINTMENT]: [AppointmentCallback.handleCancel, MenuCallback.createMainMenu],
 };
 
 class CallbackHandler {
@@ -85,9 +62,7 @@ class CallbackHandler {
 
     async handle(ctx, logger, bot) {
         const data = ctx.callbackQuery.data;
-        const matchingKey = Object.keys(callbackActions).find((key) =>
-            data.startsWith(key)
-        );
+        const matchingKey = Object.keys(callbackActions).find((key) => data.startsWith(key));
 
         if (matchingKey) {
             const callbacks = callbackActions[matchingKey];

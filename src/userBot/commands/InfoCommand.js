@@ -22,7 +22,7 @@ class InfoCommand {
     availableCommands = [
         {
             name: '/start',
-            description: 'Запустить меню для записи на процедуры',
+            description: 'Запустить главное меню',
         },
         {
             name: '/contact',

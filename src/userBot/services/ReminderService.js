@@ -1,5 +1,5 @@
-const Record = require('../../db/models/record');
-const Procedure = require('../../db/models/procedure');
+const Record = require('../../database/models/record');
+const Procedure = require('../../database/models/procedure');
 const moment = require('moment');
 /**
  * Сервис для отправки напоминаний пользователям о предстоящих записях на процедуры.
@@ -58,20 +58,16 @@ class ReminderService {
                     skipCount--;
                     continue;
                 }
-                const procedure =
-                    proceduresByEnglishName[appointment.procedure];
-                const formattedDate = moment(appointment.date)
-                    .locale('ru')
-                    .format('D MMM');
+                const procedure = proceduresByEnglishName[appointment.procedure];
+                const formattedDate = moment(appointment.date).locale('ru').format('D MMM');
                 const message = [
                     `Напоминаем, что завтра(${formattedDate}) в ${appointment.time},`,
                     `у Вас процедура - ${procedure.russianName}.`,
+                    `При опоздании более чем 15 минут - запись обнуляется`,
                     `Если Ваши планы поменялись свяжитесь с мастером или отмените запись.`,
                     `Ждём Вас 😉`,
                 ].join('\n');
-                messagePromises.push(
-                    bot.telegram.sendMessage(user.chatId, message)
-                );
+                messagePromises.push(bot.telegram.sendMessage(user.chatId, message));
                 skipCount = procedure.duration - 1;
             }
         }

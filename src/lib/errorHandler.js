@@ -3,6 +3,7 @@ class ErrorHandler {
         unknownEnvKeyError: 'Неизвестный ключ ENV',
         unknownCallbackError: 'Неизвестный колбек',
         userIsBannedError: 'Вы заблокированы',
+        userIsNotAdminError: 'У вас нет доступа',
         recordLimitError:
             'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись',
         appointmentConflictError:

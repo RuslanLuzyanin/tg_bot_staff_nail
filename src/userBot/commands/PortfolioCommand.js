@@ -1,4 +1,4 @@
-const Portfolio = require('../../db/models/portfolio');
+const Portfolio = require('../../database/models/portfolio');
 
 /**
  * Класс, обрабатывающий команду /portfolio.
@@ -19,18 +19,22 @@ class PortfolioCommand {
      * Загружает изображения из базы данных и отправляет их пользователю в виде медиагруппы.
      */
     async handle() {
-        const portfolios = await Portfolio.find();
-        const photoUrls = portfolios.map((portfolio) => portfolio.imageUrl);
-
+        const portfolios = await Portfolio.find().sort({ key: 1 });
         const { telegram, chat } = this.ctx;
 
-        const replyPromise = this.ctx.reply('Мои работы:');
-        const mediaGroupPromise = telegram.sendMediaGroup(
-            chat.id,
-            photoUrls.map((url) => ({ type: 'photo', media: url }))
-        );
+        const mediaGroup = portfolios
+            .filter((portfolio) => portfolio.image)
+            .map((portfolio) => ({
+                type: 'photo',
+                media: { source: portfolio.image },
+            }));
 
-        await Promise.all([replyPromise, mediaGroupPromise]);
+        if (mediaGroup.length > 0) {
+            await this.ctx.reply('Мои работы:');
+            await telegram.sendMediaGroup(chat.id, mediaGroup);
+        } else {
+            await this.ctx.reply('Портфолио пока не загружено.');
+        }
     }
 }
 

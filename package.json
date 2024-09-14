@@ -7,7 +7,7 @@
         "dev": "nodemon index.js",
         "start": "node index.js",
         "lint": "eslint .",
-        "seed": "node src/db/seeds/seed.js"
+        "seed": "node src/database/seeds/seed.js"
     },
     "keywords": [],
     "author": "",
@@ -19,7 +19,9 @@
         "mongodb": "^6.8.0",
         "mongoose": "^8.5.1",
         "node-cron": "^3.0.3",
+        "node-fetch": "^3.3.2",
         "node-telegram-bot-api": "^0.66.0",
+        "sharp": "^0.33.5",
         "telegraf": "^4.16.3",
         "telegraf-session-mongodb": "^2.0.2",
         "winston": "^3.13.1",

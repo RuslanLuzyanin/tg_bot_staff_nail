@@ -1,4 +1,4 @@
-const User = require('../../db/models/user');
+const User = require('../../database/models/user');
 
 class UserCallback {
     /**
@@ -7,7 +7,7 @@ class UserCallback {
      * @param {object} ctx - Контекст телеграф.
      */
     static async handleVerification(ctx, logger) {
-        const { id: userId, first_name: userName } = ctx.from;
+        const { id: userId, username, first_name, last_name } = ctx.from;
         const { id: chatId } = ctx.chat;
 
         let user = await User.findOne({ id: userId });
@@ -17,15 +17,21 @@ class UserCallback {
         }
 
         if (!user) {
-            user = new User({ id: userId, name: userName, chatId: chatId });
+            user = new User({
+                id: userId,
+                name: username,
+                first_name: first_name,
+                last_name: last_name,
+                chatId: chatId,
+            });
         } else {
-            user.name = userName;
+            user.name = username;
+            user.first_name = first_name;
+            user.last_name = last_name;
             user.chatId = chatId;
         }
         await user.save();
-        logger.debug(
-            'Информация о пользователе успешно сохранена в базу данных'
-        );
+        logger.debug('Информация о пользователе успешно сохранена в базу данных');
     }
 }
 
