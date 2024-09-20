@@ -7,6 +7,9 @@ const Notification = require('../../database/models/notification');
 const moment = require('moment');
 
 class AdminCallback {
+    /**
+     * Обрабатывает действие блокировки пользователя.
+     */
     static async handleBlockUser(ctx) {
         const { callbackQuery } = ctx;
         const userId = callbackQuery.data.split('_').slice(2).join('_');
@@ -14,7 +17,9 @@ class AdminCallback {
         const message = await ctx.reply(`Пользователь с ID ${userId} был заблокирован.`);
         setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
     }
-
+    /**
+     * Обрабатывает действие разблокировки пользователя.
+     */
     static async handleUnBlockUser(ctx) {
         const { callbackQuery } = ctx;
         const userId = callbackQuery.data.split('_').slice(2).join('_');
@@ -22,7 +27,9 @@ class AdminCallback {
         const message = await ctx.reply(`Пользователь с ID ${userId} был разблокирован.`);
         setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
     }
-
+    /**
+     * Обрабатывает действие отображения оповещения.
+     */
     static async handleViewNotification(ctx) {
         const notification = await Notification.findOne();
 
@@ -43,13 +50,17 @@ class AdminCallback {
         await ctx.reply('Существующее оповещение:');
         await ctx.telegram.sendMediaGroup(ctx.chat.id, mediaGroup);
     }
-
+    /**
+     * Обрабатывает действие удаления оповещения.
+     */
     static async handleDeleteNotification(ctx) {
         await Notification.deleteOne({});
         const message = await ctx.reply('Оповещение успешно удалено.');
         setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
     }
-
+    /**
+     * Обрабатывает действие удаления процедуры.
+     */
     static async handleDeleteProcedure(ctx) {
         const { callbackQuery } = ctx;
         const [, , , englishName] = callbackQuery.data.split('_');
@@ -64,7 +75,9 @@ class AdminCallback {
             setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
         }
     }
-
+    /**
+     * Обрабатывает действие удаления прайс-листа.
+     */
     static async handleDeletePrice(ctx) {
         const { callbackQuery } = ctx;
         const [, , , priceIndex] = callbackQuery.data.split('_');
@@ -79,7 +92,9 @@ class AdminCallback {
             setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
         }
     }
-
+    /**
+     * Обрабатывает действие создания прайс-листа.
+     */
     static async handleCreatePrice(ctx) {
         const { callbackQuery } = ctx;
         const [, , , priceIndex] = callbackQuery.data.split('_');
@@ -94,7 +109,9 @@ class AdminCallback {
         const message = await ctx.reply(`Новая запись с индексом ${priceIndex} успешно создана.`);
         setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
     }
-
+    /**
+     * Обрабатывает действие удаления портфолио.
+     */
     static async handleDeletePortfolio(ctx) {
         const { callbackQuery } = ctx;
         const [, , , portfolioIndex] = callbackQuery.data.split('_');
@@ -109,7 +126,9 @@ class AdminCallback {
             setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
         }
     }
-
+    /**
+     * Обрабатывает действие создания портфоллио.
+     */
     static async handleCreatePortfolio(ctx) {
         const { callbackQuery } = ctx;
         const [, , , portfolioIndex] = callbackQuery.data.split('_');
@@ -124,13 +143,11 @@ class AdminCallback {
         const message = await ctx.reply(`Новая запись с индексом ${portfolioIndex} успешно создана.`);
         setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
     }
-
+    /**
+     * Обрабатывает действие получения записей.
+     */
     static async getRecordsData(ctx) {
-        const { id: userId } = ctx.from;
-        const records = await Record.find(
-            { userId: { $ne: userId } },
-            { userId: 1, procedure: 1, date: 1, time: 1 }
-        ).sort({
+        const records = await Record.find({}, { userId: 1, procedure: 1, date: 1, time: 1 }).sort({
             date: 1,
             time: 1,
         });
@@ -150,36 +167,27 @@ class AdminCallback {
             return map;
         }, {});
 
-        const recordsData = [];
-        let skipCount = 0;
-
-        for (const record of records) {
-            if (skipCount > 0) {
-                skipCount--;
-                continue;
-            }
-
-            const { duration } = procedureMap[record.procedure];
-            skipCount = duration - 1;
-
-            recordsData.push({
-                name: userMap[record.userId],
-                procedure: procedureMap[record.procedure].russianName,
-                date: record.date,
-                time: record.time,
-            });
-        }
+        const recordsData = records.map((record) => ({
+            name: userMap[record.userId],
+            procedure: procedureMap[record.procedure].russianName,
+            date: record.date,
+            time: record.time,
+        }));
 
         ctx.state.recordsData = recordsData;
     }
-
+    /**
+     * Обрабатывает действие выбора месяца.
+     */
     static async handleSelectMonth(ctx) {
         const { callbackQuery, session } = ctx;
         const [, , , month, year] = callbackQuery.data.split('_');
         session.selectedMonth = month;
         session.selectedYear = year;
     }
-
+    /**
+     * Обрабатывает действие удаления выходного дня.
+     */
     static async handleDeleteDayOff(ctx) {
         const { callbackQuery } = ctx;
         const [, , , , day, month, year] = callbackQuery.data.split('_');
@@ -190,37 +198,51 @@ class AdminCallback {
                 $gte: date,
                 $lt: moment(date).add(1, 'day').toDate(),
             },
-            procedure: 'OFF',
+            procedure: 'Off',
         });
 
         const message = await ctx.reply(`Выходной на ${moment(date).format('DD.MM.YYYY')} был удален.`);
         setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
     }
-
+    /**
+     * Обрабатывает действие создания оповещения.
+     */
     static async handleCreateNotification(ctx) {
         await ctx.scene.enter('create_notification');
     }
-
+    /**
+     * Обрабатывает действие изменения процедуры.
+     */
     static async handleEditProcedure(ctx) {
         await ctx.scene.enter('edit_procedure');
     }
-
+    /**
+     * Обрабатывает действие подтверждения выходного.
+     */
     static async handleConfirmDayOff(ctx) {
         await ctx.scene.enter('update_day_off');
     }
-
+    /**
+     * Обрабатывает действие создания процедуры.
+     */
     static async handleCreateProcedure(ctx) {
         await ctx.scene.enter('create_procedure');
     }
-
+    /**
+     * Обрабатывает действие создания прайс листа.
+     */
     static async handleUpdatePrice(ctx) {
         await ctx.scene.enter('update_price');
     }
-
+    /**
+     * Обрабатывает действие обновления портфолио.
+     */
     static async handleUpdatePortfolio(ctx) {
         await ctx.scene.enter('update_portfolio');
     }
-
+    /**
+     * Обрабатывает действие обновления рабочих часов.
+     */
     static async handleUpdateWorkingHours(ctx) {
         await ctx.scene.enter('update_working_hours');
     }

@@ -1,13 +1,26 @@
 const { Scenes } = require('telegraf');
 const Notification = require('../../database/models/notification');
-
+/**
+ * Сцена для создания нового оповещения.
+ * @type {Scenes.WizardScene}
+ */
 const createNotificationScene = new Scenes.WizardScene(
     'create_notification',
+    /**
+     * Первый шаг сцены - запрос текста оповещения.
+     * @param {Telegraf.Context} ctx - Контекст Telegram бота.
+     * @returns {Promise<number>} - Следующий шаг сцены.
+     */
     async (ctx) => {
         const { session } = ctx;
         session.tempMessage = await ctx.reply('Введите текст оповещения:');
         return ctx.wizard.next();
     },
+    /**
+     * Второй шаг сцены - запрос фотографии для оповещения.
+     * @param {Telegraf.Context} ctx - Контекст Telegram бота.
+     * @returns {Promise<number>} - Следующий шаг сцены.
+     */
     async (ctx) => {
         const { session, message } = ctx;
         session.lastMessage = message.text;
@@ -17,6 +30,11 @@ const createNotificationScene = new Scenes.WizardScene(
         session.tempMessage = await ctx.reply('Отправьте фотографию для оповещения:');
         return ctx.wizard.next();
     },
+    /**
+     * Третий шаг сцены - сохранение оповещения в базе данных.
+     * @param {Telegraf.Context} ctx - Контекст Telegram бота.
+     * @returns {Promise<void>} - Выход из сцены.
+     */
     async (ctx) => {
         const { session, message } = ctx;
         const largestPhoto = message.photo[message.photo.length - 1];

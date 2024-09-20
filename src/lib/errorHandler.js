@@ -1,20 +1,25 @@
 class ErrorHandler {
+    /**
+     * Объект с описаниями различных ошибок, которые могут возникнуть в приложении.
+     * @type {Object}
+     */
     static ERRORS = {
         unknownEnvKeyError: 'Неизвестный ключ ENV',
         unknownCallbackError: 'Неизвестный колбек',
         userIsBannedError: 'Вы заблокированы',
         userIsNotAdminError: 'У вас нет доступа',
-        recordLimitError:
-            'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись',
-        appointmentConflictError:
-            'Запись конфликтует с созданными рание записями',
+        recordLimitError: 'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись',
+        appointmentConflictError: 'Запись конфликтует с созданными рание записями',
         validateMenuDataMassiveError: 'MenuData должен быть массивом объектов',
-        validateMenuDataTextError:
-            'Каждый элемент MenuData должен иметь свойство text',
-        validateMenuDataCallbackError:
-            'Каждый элемент MenuData должен иметь свойство callback или url',
+        validateMenuDataTextError: 'Каждый элемент MenuData должен иметь свойство text',
+        validateMenuDataCallbackError: 'Каждый элемент MenuData должен иметь свойство callback или url',
     };
 
+    /**
+     * Обрабатывает ошибку, возникшую в приложении.
+     * @param {Error} error - Объект ошибки.
+     * @param {Object} ctx - Контекст вызова.
+     */
     static async handleError(error, ctx) {
         this.logger.error(error.stack);
 
@@ -27,6 +32,10 @@ class ErrorHandler {
         setTimeout(() => ctx.deleteMessage(response.message_id), 5000);
     }
 
+    /**
+     * Устанавливает логгер для класса ErrorHandler.
+     * @param {Object} logger - Объект логгера.
+     */
     static setLogger(logger) {
         this.logger = logger;
     }

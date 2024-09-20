@@ -1,8 +1,16 @@
 const { Scenes } = require('telegraf');
 const Portfolio = require('../../database/models/portfolio');
-
+/**
+ * Сцена для обновления портфолио.
+ * @type {Scenes.WizardScene}
+ */
 const updatePortfolioScene = new Scenes.WizardScene(
     'update_portfolio',
+    /**
+     * Обрабатывает первый шаг сцены - запрашивает новую фотографию для портфолио.
+     * @param {object} ctx - Объект контекста Telegram.
+     * @returns {Promise<number>} - Возвращает следующий шаг сцены.
+     */
     async (ctx) => {
         const { callbackQuery, session } = ctx;
         session.selectedIndex = callbackQuery.data.split('_')[3];
@@ -11,6 +19,11 @@ const updatePortfolioScene = new Scenes.WizardScene(
         );
         return ctx.wizard.next();
     },
+    /**
+     * Обрабатывает второй шаг сцены - обновляет фотографию в портфолио.
+     * @param {object} ctx - Объект контекста Telegram.
+     * @returns {Promise<object>} - Возвращает объект сцены.
+     */
     async (ctx) => {
         const { session, message } = ctx;
         const largestPhoto = message.photo[message.photo.length - 1];

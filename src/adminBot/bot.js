@@ -58,6 +58,9 @@ class AdminBot {
         this.logger.info('Middleware установлен');
     }
 
+    /**
+     * Регистрирует сцены (Scenes) для бота.
+     */
     async registerScene() {
         const scenes = [
             createProcedureScene,

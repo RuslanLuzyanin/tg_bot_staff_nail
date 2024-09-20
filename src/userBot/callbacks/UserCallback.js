@@ -6,7 +6,7 @@ class UserCallback {
      * Сохраняет или обновляет информацию о пользователе в базе данных.
      * @param {object} ctx - Контекст телеграф.
      */
-    static async handleVerification(ctx, logger) {
+    static async handleVerification(ctx) {
         const { id: userId, username, first_name, last_name } = ctx.from;
         const { id: chatId } = ctx.chat;
 
@@ -31,7 +31,6 @@ class UserCallback {
             user.chatId = chatId;
         }
         await user.save();
-        logger.debug('Информация о пользователе успешно сохранена в базу данных');
     }
 }
 

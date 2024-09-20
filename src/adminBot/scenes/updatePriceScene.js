@@ -1,8 +1,16 @@
 const { Scenes } = require('telegraf');
 const Price = require('../../database/models/price');
-
+/**
+ * Сцена для обновления цен.
+ * @type {Scenes.WizardScene}
+ */
 const updatePriceScene = new Scenes.WizardScene(
     'update_price',
+    /**
+     * Обрабатывает первый шаг сцены - запрашивает новую фотографию для цены.
+     * @param {object} ctx - Объект контекста Telegram.
+     * @returns {Promise<number>} - Возвращает следующий шаг сцены.
+     */
     async (ctx) => {
         const { callbackQuery, session } = ctx;
         session.selectedIndex = callbackQuery.data.split('_')[3];
@@ -11,6 +19,11 @@ const updatePriceScene = new Scenes.WizardScene(
         );
         return ctx.wizard.next();
     },
+    /**
+     * Обрабатывает второй шаг сцены - обновляет фотографию цены.
+     * @param {object} ctx - Объект контекста Telegram.
+     * @returns {Promise<object>} - Возвращает объект сцены.
+     */
     async (ctx) => {
         const { session, message } = ctx;
         const largestPhoto = message.photo[message.photo.length - 1];

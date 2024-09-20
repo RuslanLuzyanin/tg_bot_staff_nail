@@ -1,6 +1,6 @@
-const MenuCallback = require('./menuCallback');
-const AppointmentCallback = require('./appointmentCallback');
-const UserCallback = require('./userCallback');
+const MenuCallback = require('../callbacks/menuCallback');
+const AppointmentCallback = require('../callbacks/appointmentCallback');
+const UserCallback = require('../callbacks/userCallback');
 
 const callbackCodes = {
     MENU_MAIN: 'menu_to_main_menu',
@@ -56,10 +56,26 @@ const callbackActions = {
 };
 
 class CallbackHandler {
+    /**
+     * Создает экземпляр класса CallbackHandler.
+     *
+     * @param {Object} logger - Логгер для ведения журналов.
+     */
     constructor(logger) {
         this.logger = logger;
     }
 
+    /**
+     * Обрабатывает колбек-запрос.
+     *
+     * Ищет соответствующее действие по данным колбек-запроса
+     * и выполняет связанные с ним функции.
+     *
+     * @param {Object} ctx - Контекст колбек-запроса.
+     * @param {Object} logger - Логгер для ведения журналов.
+     * @param {Object} bot - Экземпляр бота.
+     * @throws {Error} Вызывает ошибку, если не удалось найти соответствующее действие.
+     */
     async handle(ctx, logger, bot) {
         const data = ctx.callbackQuery.data;
         const matchingKey = Object.keys(callbackActions).find((key) => data.startsWith(key));
@@ -73,6 +89,14 @@ class CallbackHandler {
         throw new Error('unknownCallbackError');
     }
 
+    /**
+     * Выполняет массив функций обратного вызова.
+     *
+     * @param {Function[]} callbacks - Массив функций обратного вызова для выполнения.
+     * @param {Object} ctx - Контекст колбек-запроса.
+     * @param {Object} logger - Логгер для ведения журналов.
+     * @param {Object} bot - Экземпляр бота.
+     */
     async executeCallbacks(callbacks, ctx, logger, bot) {
         for (const callback of callbacks) {
             await callback(ctx, logger, bot);

@@ -66,10 +66,10 @@ const callbackActions = {
     [callbackCodes.UPDATE_PROCEDURE]: [AdminCallback.handleEditProcedure, MenuCallback.createMainMenu],
     [callbackCodes.DELETE_PROCEDURE]: [AdminCallback.handleDeleteProcedure, MenuCallback.createProcedureMenu],
 
-    [callbackCodes.MENU_PRICE]: [MenuCallback.createUpdatePriceMenu],
-    [callbackCodes.CREATE_PRICE]: [AdminCallback.handleCreatePrice, MenuCallback.createUpdatePriceMenu],
+    [callbackCodes.MENU_PRICE]: [MenuCallback.createPriceMenu],
+    [callbackCodes.CREATE_PRICE]: [AdminCallback.handleCreatePrice, MenuCallback.createPriceMenu],
     [callbackCodes.UPDATE_PRICE]: [AdminCallback.handleUpdatePrice, MenuCallback.createMainMenu],
-    [callbackCodes.DELETE_PRICE]: [AdminCallback.handleDeletePrice, MenuCallback.createUpdatePriceMenu],
+    [callbackCodes.DELETE_PRICE]: [AdminCallback.handleDeletePrice, MenuCallback.createPriceMenu],
 
     [callbackCodes.MENU_PORTFOLIO]: [MenuCallback.createPortfolioMenu],
     [callbackCodes.CREATE_PORTFOLIO]: [AdminCallback.handleCreatePortfolio, MenuCallback.createPortfolioMenu],
@@ -88,10 +88,26 @@ const callbackActions = {
 };
 
 class CallbackHandler {
+    /**
+     * Создает экземпляр класса CallbackHandler.
+     *
+     * @param {Object} logger - Логгер для ведения журналов.
+     */
     constructor(logger) {
         this.logger = logger;
     }
 
+    /**
+     * Обрабатывает колбек-запрос.
+     *
+     * Ищет соответствующее действие по данным колбек-запроса
+     * и выполняет связанные с ним функции.
+     *
+     * @param {Object} ctx - Контекст колбек-запроса.
+     * @param {Object} logger - Логгер для ведения журналов.
+     * @param {Object} bot - Экземпляр бота.
+     * @throws {Error} Вызывает ошибку, если не удалось найти соответствующее действие.
+     */
     async handle(ctx, logger, bot) {
         const data = ctx.callbackQuery.data;
         const matchingKey = Object.keys(callbackActions).find((key) => data.startsWith(key));
@@ -105,6 +121,14 @@ class CallbackHandler {
         throw new Error('unknownCallbackError');
     }
 
+    /**
+     * Выполняет массив функций обратного вызова.
+     *
+     * @param {Function[]} callbacks - Массив функций обратного вызова для выполнения.
+     * @param {Object} ctx - Контекст колбек-запроса.
+     * @param {Object} logger - Логгер для ведения журналов.
+     * @param {Object} bot - Экземпляр бота.
+     */
     async executeCallbacks(callbacks, ctx, logger, bot) {
         for (const callback of callbacks) {
             await callback(ctx, logger, bot);

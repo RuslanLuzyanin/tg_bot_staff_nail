@@ -9,9 +9,7 @@ const Procedure = require('../../database/models/procedure');
 
 class MenuCallback {
     /**
-     * Обрабатывает колбек "Начать".
-     *
-     * Возвращает пользователя в главное меню.
+     * Создаёт главное меню.
      */
     static async createMainMenu(ctx) {
         const menuData = [
@@ -32,7 +30,9 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText('Главное меню:', keyboard);
     }
-
+    /**
+     * Создаёт меню блокировки пользователей.
+     */
     static async createBlocUserkMenu(ctx) {
         const users = await User.find(
             { isBanned: false },
@@ -52,7 +52,9 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText('Выберите пользователя для блокировки:', keyboard);
     }
-
+    /**
+     * Создаёт меню разблокировки пользователей.
+     */
     static async createUnBlocUserkMenu(ctx) {
         const users = await User.find(
             { isBanned: true },
@@ -72,12 +74,17 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText('Выберите пользователя для разблокировки:', keyboard);
     }
-
+    /**
+     * Создаёт меню изменения процедур.
+     */
     static async createProcedureMenu(ctx) {
         const message = 'Можете обновить или удалить существующие процедуры, а также добавить новую';
         const menuData = [];
 
-        const procedures = await Procedure.find({}, { englishName: 1, russianName: 1, duration: 1 }).sort({
+        const procedures = await Procedure.find(
+            { englishName: { $ne: 'Off' } },
+            { englishName: 1, russianName: 1, duration: 1 }
+        ).sort({
             russianName: 1,
         });
 
@@ -105,8 +112,10 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
         await ctx.editMessageText(message, keyboard);
     }
-
-    static async createUpdatePriceMenu(ctx) {
+    /**
+     * Создаёт меню изменения прайс-листов.
+     */
+    static async createPriceMenu(ctx) {
         const message = 'Можете обновить или удалить фотографии, а также добавить ещё одну фотографию';
         const menuData = [];
 
@@ -150,7 +159,9 @@ class MenuCallback {
             }, 7000);
         }
     }
-
+    /**
+     * Создаёт меню изменения портфолио.
+     */
     static async createPortfolioMenu(ctx) {
         const message = 'Можете обновить или удалить фотографии, а также добавить ещё одну фотографию';
         const menuData = [];
@@ -195,7 +206,9 @@ class MenuCallback {
             }, 7000);
         }
     }
-
+    /**
+     * Создаёт меню записей пользователей.
+     */
     static async createCheckRecordsMenu(ctx) {
         const recordsData = ctx.state.recordsData;
         if (recordsData.length === 0) {
@@ -207,14 +220,16 @@ class MenuCallback {
         let message = 'Записи на процедуры:\n\n';
         for (const { name, procedure, date, time } of recordsData) {
             const formattedDate = moment(date).locale('ru').format('D MMM');
-            message += `${formattedDate} ${time} - @${name} "${procedure}" \n\n`;
+            message += `${procedure}: ${formattedDate} ${time} - @${name} \n\n`;
         }
 
         const menuData = [{ text: 'Назад', callback: 'menu_main' }];
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
         await ctx.editMessageText(message, keyboard);
     }
-
+    /**
+     * Создаёт меню выбора месяца для выбора выходного.
+     */
     static async createSelectMonthMenu(ctx) {
         const currentDate = moment();
         const currentMonth = currentDate.month() + 1;
@@ -248,7 +263,9 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 2));
         await ctx.editMessageText('Выберите месяц:', keyboard);
     }
-
+    /**
+     * Создаёт меню выбора месяца для удаления выходного.
+     */
     static async createDeleteMonthMenu(ctx) {
         const currentDate = moment();
         const currentMonth = currentDate.month() + 1;
@@ -282,24 +299,25 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 2));
         await ctx.editMessageText('Выберите месяц:', keyboard);
     }
-
+    /**
+     * Создаёт меню выбора дня для удаления выходного.
+     */
     static async createDeleteDayOffMenu(ctx) {
         const { selectedMonth, selectedYear } = ctx.session;
-        const startDate = new Date(selectedYear, Number(selectedMonth) - 1, 0);
-        const endDate = new Date(selectedYear, selectedMonth, 0);
+        const startDate = new Date(selectedYear, Number(selectedMonth) - 1, 1);
+        const endDate = new Date(selectedYear, Number(selectedMonth), 0);
+
         const records = await Record.find(
             {
                 date: { $gte: startDate, $lte: endDate },
-                procedure: 'OFF',
+                procedure: 'Off',
             },
             { date: 1 }
-        ).distinct('date');
+        );
 
-        const uniqueDates = [...new Set(records.map((date) => moment(date).format('DD.MM.YYYY')))];
-
-        const menuData = uniqueDates.map((dateStr) => ({
-            text: dateStr,
-            callback: `admin_delete_day_off_${dateStr.split('.').join('_')}`,
+        const menuData = records.map((record) => ({
+            text: moment(record.date).format('DD.MM.YYYY'),
+            callback: `admin_delete_day_off_${moment(record.date).format('DD_MM_YYYY')}`,
         }));
 
         menuData.push({

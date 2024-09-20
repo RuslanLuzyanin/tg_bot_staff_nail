@@ -1,10 +1,19 @@
 const { Scenes } = require('telegraf');
 const Procedure = require('../../database/models/procedure');
-
+/**
+ * Сцена для редактирования процедуры.
+ * @type {Scenes.WizardScene}
+ */
 const editProcedureScene = new Scenes.WizardScene(
     'edit_procedure',
+    /**
+     * Обрабатывает первый шаг сцены - получение текущей длительности процедуры.
+     * @param {object} ctx - Объект контекста Telegram.
+     * @returns {Promise<number>} - Возвращает следующий шаг сцены.
+     */
     async (ctx) => {
         const { session, callbackQuery } = ctx;
+        session.editingProcedure = {};
         session.editingProcedure.englishName = callbackQuery.data.split('_')[3];
 
         const procedure = await Procedure.findOne({ englishName: session.editingProcedure.englishName });
@@ -13,10 +22,15 @@ const editProcedureScene = new Scenes.WizardScene(
         );
         return ctx.wizard.next();
     },
+    /**
+     * Обрабатывает второй шаг сцены - обновление длительности процедуры.
+     * @param {object} ctx - Объект контекста Telegram.
+     * @returns {Promise<object>} - Возвращает объект сцены.
+     */
     async (ctx) => {
         const { session, message } = ctx;
         const procedure = await Procedure.findOne({ englishName: session.editingProcedure.englishName });
-        const newDuration = parseInt(message.text);
+        const newDuration = message.text;
 
         procedure.duration = newDuration;
         await procedure.save();
