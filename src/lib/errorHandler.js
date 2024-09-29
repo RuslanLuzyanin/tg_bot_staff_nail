@@ -9,6 +9,7 @@ class ErrorHandler {
         userIsBannedError: 'Вы заблокированы',
         userIsNotAdminError: 'У вас нет доступа',
         recordLimitError: 'У Вас уже есть 3 записи на процедуры. Вы не можете создать новую запись',
+        photoLimitError: 'Размер фотографии превышает 5 МБ',
         appointmentConflictError: 'Запись конфликтует с созданными рание записями',
         validateMenuDataMassiveError: 'MenuData должен быть массивом объектов',
         validateMenuDataTextError: 'Каждый элемент MenuData должен иметь свойство text',

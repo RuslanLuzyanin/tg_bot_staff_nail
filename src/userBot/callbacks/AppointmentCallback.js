@@ -1,6 +1,7 @@
-const Record = require('../../database/models/record');
-const Procedure = require('../../database/models/procedure');
+const { Record, Procedure } = require('../../database/models/index');
+
 const AvailableTimeService = require('../services/availableTimeService');
+
 const moment = require('moment');
 const { adminId, receptionAddress } = require('../../config/config');
 

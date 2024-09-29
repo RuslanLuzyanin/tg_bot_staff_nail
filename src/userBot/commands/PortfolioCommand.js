@@ -1,5 +1,6 @@
-const Portfolio = require('../../database/models/portfolio');
+const { Portfolio } = require('../../database/models/index');
 
+const path = require('path');
 /**
  * Класс, обрабатывающий команду /portfolio.
  */
@@ -24,10 +25,10 @@ class PortfolioCommand {
 
         const mediaGroup = portfolios
             .filter((portfolio) => portfolio.image)
-            .map((portfolio) => ({
-                type: 'photo',
-                media: { source: portfolio.image },
-            }));
+            .map((portfolio) => {
+                const filePath = path.join(process.cwd(), portfolio.image);
+                return { type: 'photo', media: { source: filePath } };
+            });
 
         if (mediaGroup.length > 0) {
             await this.ctx.reply('Мои работы:');

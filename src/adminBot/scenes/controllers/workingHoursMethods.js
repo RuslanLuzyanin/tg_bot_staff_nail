@@ -1,40 +1,40 @@
-const { Scenes } = require('telegraf');
-const WorkingTime = require('../../database/models/workingTime');
-/**
- * Сцена для обновления рабочих часов.
- * @type {Scenes.WizardScene}
- */
-const updateWorkingHoursScene = new Scenes.WizardScene(
-    'update_working_hours',
+const { WorkingTime } = require('../../../database/models/index');
+
+class WorkingHoursMethods {
     /**
-     * Обрабатывает первый шаг сцены - запрашивает время начала рабочего дня.
-     * @param {object} ctx - Объект контекста Telegram.
-     * @returns {Promise<number>} - Возвращает следующий шаг сцены.
+     * Обновление рабочих часов - шаг 1.
+     * Запрашивает время начала рабочего дня.
+     * @param {object} ctx - Контекст Telegram.
      */
-    async (ctx) => {
+
+    static async enterStartTime(ctx) {
         const { session } = ctx;
         session.tempMessage = await ctx.reply('Введите начало рабочего дня (в формате HH:MM):');
         return ctx.wizard.next();
-    },
+    }
+
     /**
-     * Обрабатывает второй шаг сцены - запрашивает время окончания рабочего дня.
-     * @param {object} ctx - Объект контекста Telegram.
-     * @returns {Promise<number>} - Возвращает следующий шаг сцены.
+     * Обновление рабочих часов - шаг 2.
+     * Запрашивает время окончания рабочего дня.
+     * @param {object} ctx - Контекст Telegram.
      */
-    async (ctx) => {
+
+    static async enterEndTime(ctx) {
         const { session, message } = ctx;
         session.workingHours = { startTime: message.text };
         await ctx.deleteMessage(message.message_id);
         await ctx.deleteMessage(session.tempMessage.message_id);
         session.tempMessage = await ctx.reply('Введите конец рабочего дня (в формате HH:MM):');
         return ctx.wizard.next();
-    },
+    }
+
     /**
-     * Обрабатывает третий шаг сцены - обновляет рабочие часы.
-     * @param {object} ctx - Объект контекста Telegram.
-     * @returns {Promise<object>} - Возвращает объект сцены.
+     * Обновление рабочих часов - шаг 3.
+     * Обновляет рабочие часы в базе данных.
+     * @param {object} ctx - Контекст Telegram.
      */
-    async (ctx) => {
+
+    static async saveWorkingHours(ctx) {
         const { session, message } = ctx;
         session.workingHours.endTime = message.text;
         await ctx.deleteMessage(message.message_id);
@@ -49,6 +49,6 @@ const updateWorkingHoursScene = new Scenes.WizardScene(
         setTimeout(() => ctx.deleteMessage(session.tempMessage.message_id), 5000);
         return ctx.scene.leave();
     }
-);
+}
 
-module.exports = updateWorkingHoursScene;
+module.exports = WorkingHoursMethods;

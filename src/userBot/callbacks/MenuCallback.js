@@ -1,10 +1,10 @@
-const { Markup } = require('telegraf');
 const MenuService = require('../../shared/services/menuService');
 const GetSlotHoursService = require('../services/getSlotHoursService');
 const AvailableTimeService = require('../services/availableTimeService');
-const Procedure = require('../../database/models/procedure');
-const WorkingTime = require('../../database/models/workingTime');
-const Record = require('../../database/models/record');
+
+const { Procedure, WorkingTime, Record } = require('../../database/models/index');
+
+const { Markup } = require('telegraf');
 const moment = require('moment');
 const { receptionAddress, adminId } = require('../../config/config');
 

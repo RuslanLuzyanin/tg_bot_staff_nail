@@ -6,14 +6,8 @@ const ErrorHandler = require('../lib/errorHandler');
 const mongoose = require('mongoose');
 const StartCommand = require('../shared/commands/startCommand');
 const CallbackHandler = require('./callbacks/callbackHandler');
+const scenes = require('./scenes/sceneRouter');
 const { adminBotToken, uri } = require('../config/config');
-const createProcedureScene = require('./scenes/createProcedureScene');
-const editProcedureScene = require('./scenes/editProcedureScene');
-const createNotificationScene = require('./scenes/createNotificationScene');
-const updateWorkingHoursScene = require('./scenes/updateWorkingHoursScene');
-const updatePorfolioScene = require('./scenes/updatePortfolioScene');
-const updatePriceScene = require('./scenes/updatePriceScene');
-const updateDayOffScene = require('./scenes/updateDayOffScene');
 
 class AdminBot {
     constructor() {
@@ -62,16 +56,6 @@ class AdminBot {
      * Регистрирует сцены (Scenes) для бота.
      */
     async registerScene() {
-        const scenes = [
-            createProcedureScene,
-            editProcedureScene,
-            createNotificationScene,
-            updateWorkingHoursScene,
-            updatePorfolioScene,
-            updatePriceScene,
-            updateDayOffScene,
-        ];
-
         for (const scene of scenes) {
             this.stage.register(scene);
         }

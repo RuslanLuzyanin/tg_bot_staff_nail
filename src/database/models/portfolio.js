@@ -1,7 +1,7 @@
 const { Schema, model } = require('mongoose');
 
 const portfolioSchema = new Schema({
-    image: { type: Buffer },
+    image: { type: String },
     key: { type: Number, required: true, unique: true },
 });
 

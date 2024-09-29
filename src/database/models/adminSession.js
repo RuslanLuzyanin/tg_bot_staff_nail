@@ -3,7 +3,6 @@ const { Schema, model } = require('mongoose');
 const adminSessionSchema = new Schema({
     tempMessage: { type: String },
     lastMessage: { type: String },
-    lastPhoto: { type: Buffer },
     selectedIndex: { type: Number },
     selectedYear: { type: Number },
     selectedMonth: { type: Number },

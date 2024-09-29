@@ -1,28 +1,25 @@
-const { Scenes } = require('telegraf');
-const WorkingTime = require('../../database/models/workingTime');
-const Record = require('../../database/models/record');
-/**
- * Сцена для обновления выходных дней.
- * @type {Scenes.WizardScene}
- */
-const updateDayOffScene = new Scenes.WizardScene(
-    'update_day_off',
+const { Record, WorkingTime } = require('../../../database/models/index');
+
+class DayOffMethods {
     /**
-     * Обрабатывает первый шаг сцены - запрашивает даты выходных.
-     * @param {object} ctx - Объект контекста Telegram.
-     * @returns {Promise<number>} - Возвращает следующий шаг сцены.
+     * Обновление выходных дней - шаг 1.
+     * Запрос дат выходных дней.
+     * @param {object} ctx - Контекст Telegram.
      */
-    async (ctx) => {
+
+    static async enterDayOffDates(ctx) {
         const { session } = ctx;
         session.tempMessage = await ctx.reply(`Введите даты выходных в этом месяце (например: 1, 5, 15):`);
         return ctx.wizard.next();
-    },
+    }
+
     /**
-     * Обрабатывает второй шаг сцены - создает записи о выходных днях.
-     * @param {object} ctx - Объект контекста Telegram.
-     * @returns {Promise<object>} - Возвращает объект сцены.
+     * Обновление выходных дней - шаг 2.
+     * Создание записей о выходных днях в базе данных.
+     * @param {object} ctx - Контекст Telegram.
      */
-    async (ctx) => {
+
+    static async saveDayOffRecords(ctx) {
         const { session, message } = ctx;
         const dateParts = message.text.split(',').map((dateStr) => dateStr.trim());
         const { startTime } = await WorkingTime.findOne({}, { startTime: 1 });
@@ -40,6 +37,6 @@ const updateDayOffScene = new Scenes.WizardScene(
         setTimeout(() => ctx.deleteMessage(session.tempMessage.message_id), 5000);
         return ctx.scene.leave();
     }
-);
+}
 
-module.exports = updateDayOffScene;
+module.exports = DayOffMethods;

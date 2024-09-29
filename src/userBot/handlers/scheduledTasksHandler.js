@@ -1,9 +1,9 @@
 const cron = require('node-cron');
 const moment = require('moment');
-const Record = require('../../database/models/record');
-const Procedure = require('../../database/models/procedure');
-const Notification = require('../../database/models/notification');
-const User = require('../../database/models/user');
+const path = require('path');
+const fs = require('fs');
+
+const { Record, Procedure, Notification, User } = require('../../database/models/index');
 
 class ScheduledTasksHandler {
     /**
@@ -93,10 +93,12 @@ class ScheduledTasksHandler {
             if (!notification) return;
 
             const users = await User.find({}, { chatId: 1 });
+            const filePath = path.join(process.cwd(), notification.photoNotification);
+
             const mediaGroup = [
                 {
                     type: 'photo',
-                    media: { source: notification.photoNotification },
+                    media: { source: filePath },
                     caption: notification.messageNotification,
                 },
             ];
@@ -105,6 +107,7 @@ class ScheduledTasksHandler {
                 this.bot.telegram.sendMediaGroup(user.chatId, mediaGroup)
             );
             await Promise.all(messagePromises);
+            fs.unlinkSync(filePath);
             this.logger.info('Оповещения отправлены');
         });
     }
@@ -131,6 +134,7 @@ class ScheduledTasksHandler {
         this.scheduleReminders();
         this.scheduleNotifications();
         this.scheduleCleanUp();
+        this.logger.info('Планировщики задач запущены');
     }
 }
 

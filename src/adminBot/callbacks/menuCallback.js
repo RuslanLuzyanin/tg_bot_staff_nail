@@ -1,16 +1,16 @@
 const MenuService = require('../../shared/services/menuService');
+
+const { User, Record, Price, Portfolio, Procedure } = require('../../database/models/index');
+
 const { Markup } = require('telegraf');
 const moment = require('moment');
-const User = require('../../database/models/user');
-const Record = require('../../database/models/record');
-const Price = require('../../database/models/price');
-const Portfolio = require('../../database/models/portfolio');
-const Procedure = require('../../database/models/procedure');
+const path = require('path');
 
 class MenuCallback {
     /**
      * Создаёт главное меню.
      */
+
     static async createMainMenu(ctx) {
         const menuData = [
             { text: 'Заблокировать пользователя', callback: 'menu_block_user' },
@@ -30,9 +30,11 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText('Главное меню:', keyboard);
     }
+
     /**
      * Создаёт меню блокировки пользователей.
      */
+
     static async createBlocUserkMenu(ctx) {
         const users = await User.find(
             { isBanned: false },
@@ -52,9 +54,11 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText('Выберите пользователя для блокировки:', keyboard);
     }
+
     /**
      * Создаёт меню разблокировки пользователей.
      */
+
     static async createUnBlocUserkMenu(ctx) {
         const users = await User.find(
             { isBanned: true },
@@ -74,9 +78,11 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText('Выберите пользователя для разблокировки:', keyboard);
     }
+
     /**
      * Создаёт меню изменения процедур.
      */
+
     static async createProcedureMenu(ctx) {
         const message = 'Можете обновить или удалить существующие процедуры, а также добавить новую';
         const menuData = [];
@@ -112,9 +118,11 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
         await ctx.editMessageText(message, keyboard);
     }
+
     /**
      * Создаёт меню изменения прайс-листов.
      */
+
     static async createPriceMenu(ctx) {
         const message = 'Можете обновить или удалить фотографии, а также добавить ещё одну фотографию';
         const menuData = [];
@@ -145,10 +153,10 @@ class MenuCallback {
 
         const mediaGroup = prices
             .filter((price) => price.image)
-            .map((price) => ({
-                type: 'photo',
-                media: { source: price.image },
-            }));
+            .map((price) => {
+                const filePath = path.join(process.cwd(), price.image);
+                return { type: 'photo', media: { source: filePath } };
+            });
 
         if (mediaGroup.length > 0) {
             const messages = await telegram.sendMediaGroup(chat.id, mediaGroup);
@@ -159,9 +167,11 @@ class MenuCallback {
             }, 7000);
         }
     }
+
     /**
      * Создаёт меню изменения портфолио.
      */
+
     static async createPortfolioMenu(ctx) {
         const message = 'Можете обновить или удалить фотографии, а также добавить ещё одну фотографию';
         const menuData = [];
@@ -192,10 +202,10 @@ class MenuCallback {
 
         const mediaGroup = portfolios
             .filter((portfolio) => portfolio.image)
-            .map((portfolio) => ({
-                type: 'photo',
-                media: { source: portfolio.image },
-            }));
+            .map((portfolio) => {
+                const filePath = path.join(process.cwd(), portfolio.image);
+                return { type: 'photo', media: { source: filePath } };
+            });
 
         if (mediaGroup.length > 0) {
             const messages = await telegram.sendMediaGroup(chat.id, mediaGroup);
@@ -206,9 +216,11 @@ class MenuCallback {
             }, 7000);
         }
     }
+
     /**
      * Создаёт меню записей пользователей.
      */
+
     static async createCheckRecordsMenu(ctx) {
         const recordsData = ctx.state.recordsData;
         if (recordsData.length === 0) {
@@ -227,9 +239,11 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
         await ctx.editMessageText(message, keyboard);
     }
+
     /**
      * Создаёт меню выбора месяца для выбора выходного.
      */
+
     static async createSelectMonthMenu(ctx) {
         const currentDate = moment();
         const currentMonth = currentDate.month() + 1;
@@ -263,9 +277,11 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 2));
         await ctx.editMessageText('Выберите месяц:', keyboard);
     }
+
     /**
      * Создаёт меню выбора месяца для удаления выходного.
      */
+
     static async createDeleteMonthMenu(ctx) {
         const currentDate = moment();
         const currentMonth = currentDate.month() + 1;
@@ -299,9 +315,11 @@ class MenuCallback {
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 2));
         await ctx.editMessageText('Выберите месяц:', keyboard);
     }
+
     /**
      * Создаёт меню выбора дня для удаления выходного.
      */
+
     static async createDeleteDayOffMenu(ctx) {
         const { selectedMonth, selectedYear } = ctx.session;
         const startDate = new Date(selectedYear, Number(selectedMonth) - 1, 1);

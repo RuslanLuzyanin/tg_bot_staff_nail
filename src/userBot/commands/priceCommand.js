@@ -1,5 +1,6 @@
-const Price = require('../../database/models/price');
+const { Price } = require('../../database/models/index');
 
+const path = require('path');
 /**
  * Класс, обрабатывающий команду /price.
  */
@@ -24,10 +25,10 @@ class PriceCommand {
 
         const mediaGroup = prices
             .filter((price) => price.image)
-            .map((price) => ({
-                type: 'photo',
-                media: { source: price.image },
-            }));
+            .map((price) => {
+                const filePath = path.join(process.cwd(), price.image);
+                return { type: 'photo', media: { source: filePath } };
+            });
 
         if (mediaGroup.length > 0) {
             await this.ctx.reply('Мои цены:');
