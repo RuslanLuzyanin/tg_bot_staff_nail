@@ -47,7 +47,7 @@ class AdminBot {
      * Настраивает middleware в MongoDB.
      */
     async setupSessionMiddleware() {
-        this.bot.use(session(this.mongoClient.db(), { collectionName: 'adminSessons' }));
+        this.bot.use(session(this.mongoClient.db(), { collectionName: 'adminsessions' }));
         this.bot.use(this.stage.middleware());
         this.logger.info('Middleware установлен');
     }

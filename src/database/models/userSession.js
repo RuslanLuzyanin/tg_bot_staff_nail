@@ -2,6 +2,7 @@ const { Schema, model } = require('mongoose');
 
 const sessionSchema = new Schema({
     selectedSlot: { type: String },
+    selectedGroupProcedure: { type: String },
     selectedProcedure: { type: String, ref: 'procedures' },
     selectedYear: { type: String },
     selectedMonth: { type: String },
@@ -18,6 +19,6 @@ const sessionSchema = new Schema({
     },
 });
 
-const Session = model('Session', sessionSchema);
+const UserSession = model('usersession', sessionSchema);
 
-module.exports = Session;
+module.exports = UserSession;

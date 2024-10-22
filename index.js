@@ -10,15 +10,9 @@ adminBot.start();
 
 let isShuttingDown = false;
 
-/* Выключил чтобы не заебывало
-
 process.on('SIGINT', async () => {
     if (isShuttingDown) return;
     isShuttingDown = true;
-
-    console.log('Получен сигнал SIGINT. Остановка бота...');
-    await bot.stop();
-    console.log('Бот остановлен.');
+    await userBot.stop();
     process.exit(0);
 });
-*/

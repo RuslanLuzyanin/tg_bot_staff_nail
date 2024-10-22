@@ -34,6 +34,11 @@ class PortfolioMethods {
         const fileIndex = session.selectedIndex;
         const fileName = `photoPortfolio_${fileIndex}.jpg`;
         const dirPath = path.join(process.cwd(), 'data', 'photo', 'portfolio');
+
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
+
         const filePath = path.join(dirPath, fileName);
 
         const response = await fetch(photoUrl);

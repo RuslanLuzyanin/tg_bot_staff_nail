@@ -9,6 +9,17 @@ class DayOffMethods {
 
     static async enterDayOffDates(ctx) {
         const { session } = ctx;
+
+        const workingTimeExists = (await WorkingTime.countDocuments()) > 0;
+
+        if (!workingTimeExists) {
+            session.tempMessage = await ctx.reply(
+                'Ошибка: не найдены записи рабочего времени. Пожалуйста, настройте рабочее время перед добавлением выходных.'
+            );
+            setTimeout(() => ctx.deleteMessage(session.tempMessage.message_id), 5000);
+            return ctx.scene.leave();
+        }
+
         session.tempMessage = await ctx.reply(`Введите даты выходных в этом месяце (например: 1, 5, 15):`);
         return ctx.wizard.next();
     }

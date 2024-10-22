@@ -54,7 +54,7 @@ class UserBot {
      * Настраивает middleware для хранения сессий в MongoDB.
      */
     async setupSessionMiddleware() {
-        this.bot.use(session(this.mongoClient.db(), { collectionName: 'userSessions' }));
+        this.bot.use(session(this.mongoClient.db(), { collectionName: 'usersessions' }));
         this.logger.info('Middleware сессий установлен');
     }
 

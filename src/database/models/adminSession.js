@@ -23,6 +23,6 @@ const adminSessionSchema = new Schema({
     },
 });
 
-const AdminSession = model('AdminSession', adminSessionSchema);
+const AdminSession = model('adminsession', adminSessionSchema);
 
 module.exports = AdminSession;

@@ -27,6 +27,16 @@ class AppointmentCallback {
     }
 
     /**
+     * Обрабатывает колбек выбора группы процедуры.
+     * Извлекает имя группы процедуры из callbackData и сохраняет его в сессию.
+     */
+    static async handleSelectGroupProcedure(ctx) {
+        const { callbackQuery, session } = ctx;
+        const groupProcedureName = callbackQuery.data.split('_').slice(3).join('_');
+        session.selectedGroupProcedure = groupProcedureName;
+    }
+
+    /**
      * Обрабатывает колбек выбора процедуры.
      * Извлекает имя процедуры из callbackData и сохраняет его в сессию.
      */
@@ -115,6 +125,7 @@ class AppointmentCallback {
             `Ваша процедура - ${selectedProcedureRussianName}.`,
             `Процедура будет проходить по адресу: ${receptionAddress}`,
             `При опоздании более чем 15 минут - запись обнуляется`,
+            `Ожидаемое время процедуры - ${selectedProcedureDuration} ч.`,
         ].join('\n');
 
         await ctx.reply(messageData);

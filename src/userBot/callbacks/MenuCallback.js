@@ -6,7 +6,7 @@ const { Procedure, WorkingTime, Record } = require('../../database/models/index'
 
 const { Markup } = require('telegraf');
 const moment = require('moment');
-const { receptionAddress, adminId } = require('../../config/config');
+const { receptionAddress, regId } = require('../../config/config');
 
 class MenuCallback {
     /**
@@ -32,15 +32,29 @@ class MenuCallback {
      */
     static async createSlotMenu(ctx) {
         const { selectedSlot } = ctx.session;
+        const { startTime, endTime } = await WorkingTime.findOne();
+
         const slotNames = {
             morning: 'Утро',
             day: 'День',
             evening: 'Вечер',
             any: 'Любые',
         };
+
+        const morningSlot = GetSlotHoursService.getSlotHours('morning', startTime, endTime, 0);
+        const daySlot = GetSlotHoursService.getSlotHours('day', startTime, endTime, 0);
+        const eveningSlot = GetSlotHoursService.getSlotHours('evening', startTime, endTime, 0);
+        const anySlot = GetSlotHoursService.getSlotHours('any', startTime, endTime, 0);
+
+        const formatSlotTime = (slot) => `${slot[0].format('HH:mm')} - ${slot[1].format('HH:mm')}`;
+
         if (selectedSlot) {
+            const slotTime = GetSlotHoursService.getSlotHours(selectedSlot, startTime, endTime, 0);
+
             const russianSlotName = slotNames[selectedSlot];
-            const confirmMessage = `Вы выбрали слот ${russianSlotName}. Вы можете изменить свой слот, для того чтобы увидеть больше дней для записи. Подтвердить?`;
+            const confirmMessage = `Вы выбрали слот ${russianSlotName} (${formatSlotTime(
+                slotTime
+            )}). Вы можете изменить свой слот, для того чтобы увидеть дни, только с подходящим временем для записи. Подтвердить?`;
             const confirmKeyboard = Markup.inlineKeyboard([
                 Markup.button.callback('Подвердить', 'app_select_slot_confirm'),
                 Markup.button.callback('Изменить', 'change_select_slot'),
@@ -52,29 +66,50 @@ class MenuCallback {
 
         const menuData = [
             {
-                text: slotNames.morning,
+                text: `${slotNames.morning} (${formatSlotTime(morningSlot)})`,
                 callback: 'app_select_slot_morning',
             },
             {
-                text: slotNames.day,
+                text: `${slotNames.day} (${formatSlotTime(daySlot)})`,
                 callback: 'app_select_slot_day',
             },
             {
-                text: slotNames.evening,
+                text: `${slotNames.evening} (${formatSlotTime(eveningSlot)})`,
                 callback: 'app_select_slot_evening',
             },
             {
-                text: slotNames.any,
+                text: `${slotNames.any} (${formatSlotTime(anySlot)})`,
                 callback: 'app_select_slot_any',
             },
         ];
         menuData.push({ text: 'Назад', callback: 'menu_to_main_menu' });
 
-        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
+        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText(
-            'Выберите удобный для Вас слот для записи (Это нужно для того чтобы отобразить только нужные для Вас дни):',
+            'Выберите удобный для Вас слот для записи. Это нужно для того чтобы отобразить только нужные для Вас дни:',
             keyboard
         );
+    }
+
+    /**
+     * Создаёт меню выбора группы процедур.
+     */
+    static async createGroupProcedureMenu(ctx) {
+        const groups = [
+            { text: 'Маникюр', value: 'manicure' },
+            { text: 'Наращивание', value: 'extensions' },
+            { text: 'Педикюр', value: 'pedicure' },
+        ];
+
+        const menuData = groups.map((group) => ({
+            text: group.text,
+            callback: `app_select_group_${group.value}`,
+        }));
+
+        menuData.push({ text: 'Назад', callback: 'menu_to_slot_menu' });
+
+        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
+        await ctx.editMessageText('Выберите группу процедур:', keyboard);
     }
 
     /**
@@ -84,22 +119,22 @@ class MenuCallback {
      *
      */
     static async createProcedureMenu(ctx) {
-        const { appointments } = ctx.session;
+        const { appointments, selectedGroupProcedure } = ctx.session;
         const { from } = ctx;
         const userId = from.id.toString();
-        if (appointments.length >= 3 && userId !== adminId) {
+        if (appointments.length >= 3 && userId !== regId) {
             throw new Error('recordLimitError');
         }
 
-        const procedures = await Procedure.find({ englishName: { $ne: 'Off' } });
+        const procedures = await Procedure.find({ englishName: { $regex: `^${selectedGroupProcedure}` } });
         const menuData = procedures.map((procedure) => ({
             text: procedure.russianName,
             callback: `app_select_procedure_${procedure.englishName}`,
         }));
 
-        menuData.push({ text: 'Назад', callback: 'menu_to_slot_menu' });
+        menuData.push({ text: 'Назад', callback: 'menu_to_group_procedure_menu' });
 
-        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
+        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData, 1));
         await ctx.editMessageText('Выберите процедуру:', keyboard);
     }
 

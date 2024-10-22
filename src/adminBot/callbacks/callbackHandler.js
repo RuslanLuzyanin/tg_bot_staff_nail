@@ -13,6 +13,7 @@ const callbackCodes = {
     UNBLOCK_HANDLE: 'admin_unblock_',
 
     CHECK_RECORDS: 'menu_check_records',
+    CHECK_RECORDS_THREE_DAYS: 'menu_check_three_days_records',
 
     UPDATE_WORKING_HOURS: 'admin_update_hours',
 
@@ -54,6 +55,10 @@ const callbackActions = {
     [callbackCodes.UNBLOCK_HANDLE]: [AdminCallback.handleUnBlockUser, MenuCallback.createMainMenu],
 
     [callbackCodes.CHECK_RECORDS]: [AdminCallback.getRecordsData, MenuCallback.createCheckRecordsMenu],
+    [callbackCodes.CHECK_RECORDS_THREE_DAYS]: [
+        AdminCallback.getRecordsDataThreeDays,
+        MenuCallback.createCheckRecordsMenu,
+    ],
 
     [callbackCodes.UPDATE_WORKING_HOURS]: [AdminCallback.handleUpdateWorkingHours],
 

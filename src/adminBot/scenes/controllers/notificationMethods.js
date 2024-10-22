@@ -46,6 +46,11 @@ class NotificationMethods {
 
         const fileName = 'notificationPhoto.jpg';
         const dirPath = path.join(process.cwd(), 'data', 'photo', 'notification');
+
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
+
         const filePath = path.join(dirPath, fileName);
 
         const response = await fetch(photoUrl);

@@ -36,7 +36,7 @@ const editProcedure = new Scenes.WizardScene(
     enterNewProcedureDuration,
     saveUpdatedProcedure
 );
-const updateDayOff = new Scenes.WizardScene('upate_day_off', enterDayOffDates, saveDayOffRecords);
+const updateDayOff = new Scenes.WizardScene('update_day_off', enterDayOffDates, saveDayOffRecords);
 const updatePortfolio = new Scenes.WizardScene('update_portfolio', enterPortfolioPhoto, savePortfolioPhoto);
 const updatePrice = new Scenes.WizardScene('update_price', enterPricePhoto, savePricePhoto);
 const updateWorkingHours = new Scenes.WizardScene(

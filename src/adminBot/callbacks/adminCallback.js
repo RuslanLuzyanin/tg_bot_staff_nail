@@ -13,6 +13,7 @@ class AdminCallback {
         const { callbackQuery } = ctx;
         const userId = callbackQuery.data.split('_').slice(2).join('_');
         await User.updateOne({ id: userId }, { isBanned: true });
+        await Record.deleteMany({ userId: userId });
         const message = await ctx.reply(`Пользователь с ID ${userId} был заблокирован.`);
         setTimeout(() => ctx.deleteMessage(message.message_id), 5000);
     }
@@ -176,6 +177,55 @@ class AdminCallback {
 
     static async getRecordsData(ctx) {
         const records = await Record.find({}, { userId: 1, procedure: 1, date: 1, time: 1 }).sort({
+            date: 1,
+            time: 1,
+        });
+
+        const procedures = await Procedure.find().select('englishName russianName duration');
+        const procedureMap = procedures.reduce((map, proc) => {
+            map[proc.englishName] = { russianName: proc.russianName, duration: proc.duration };
+            return map;
+        }, {});
+
+        const users = await User.find(
+            { id: { $in: records.map((r) => r.userId) } },
+            { id: 1, name: 1 }
+        ).exec();
+        const userMap = users.reduce((map, user) => {
+            map[user.id] = user.name;
+            return map;
+        }, {});
+
+        const recordsData = records.map((record) => ({
+            name: userMap[record.userId],
+            procedure: procedureMap[record.procedure].russianName,
+            date: record.date,
+            time: record.time,
+        }));
+
+        ctx.state.recordsData = recordsData;
+    }
+
+    /**
+     * Обрабатывает действие получения записей на 3 дня.
+     */
+
+    static async getRecordsDataThreeDays(ctx) {
+        const today = new Date();
+        const threeDaysLater = new Date();
+        threeDaysLater.setDate(today.getDate() + 3);
+
+        const records = await Record.find(
+            {
+                date: { $lte: threeDaysLater },
+            },
+            {
+                userId: 1,
+                procedure: 1,
+                date: 1,
+                time: 1,
+            }
+        ).sort({
             date: 1,
             time: 1,
         });

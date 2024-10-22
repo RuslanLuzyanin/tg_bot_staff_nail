@@ -5,6 +5,7 @@ const UserCallback = require('../callbacks/userCallback');
 const callbackCodes = {
     MENU_MAIN: 'menu_to_main_menu',
     MENU_SLOTS: 'menu_to_slot_menu',
+    MENU_GROUP: 'menu_to_group_procedure_menu',
     MENU_PROCEDURE: 'menu_to_procedure_menu',
     MENU_MONTH: 'menu_to_month_menu',
     MENU_DAY: 'menu_to_day_menu',
@@ -14,6 +15,7 @@ const callbackCodes = {
     USER_VERIFICATION: 'user_verification',
     SELECT_SLOT: 'app_select_slot_',
     CHANGE_SLOT: 'change_select_slot',
+    SELECT_GROUP: 'app_select_group_',
     SELECT_PROCEDURE: 'app_select_procedure_',
     SELECT_MONTH: 'app_select_month_',
     SELECT_DAY: 'app_select_day_',
@@ -34,12 +36,20 @@ const callbackActions = {
     ],
     [callbackCodes.MENU_MAIN]: [MenuCallback.createMainMenu],
     [callbackCodes.MENU_SLOTS]: [AppointmentCallback.handleGetAppointments, MenuCallback.createSlotMenu],
+    [callbackCodes.MENU_GROUP]: [MenuCallback.createGroupProcedureMenu],
     [callbackCodes.MENU_PROCEDURE]: [MenuCallback.createProcedureMenu],
     [callbackCodes.MENU_MONTH]: [MenuCallback.createMonthMenu],
     [callbackCodes.MENU_DAY]: [MenuCallback.createDayMenu],
     [callbackCodes.MENU_TIME]: [MenuCallback.createTimeMenu],
     [callbackCodes.CHANGE_SLOT]: [AppointmentCallback.clearSelectedSlot, MenuCallback.createSlotMenu],
-    [callbackCodes.SELECT_SLOT]: [AppointmentCallback.handleSelectSlot, MenuCallback.createProcedureMenu],
+    [callbackCodes.SELECT_SLOT]: [
+        AppointmentCallback.handleSelectSlot,
+        MenuCallback.createGroupProcedureMenu,
+    ],
+    [callbackCodes.SELECT_GROUP]: [
+        AppointmentCallback.handleSelectGroupProcedure,
+        MenuCallback.createProcedureMenu,
+    ],
     [callbackCodes.SELECT_PROCEDURE]: [
         AppointmentCallback.handleSelectProcedure,
         MenuCallback.createMonthMenu,

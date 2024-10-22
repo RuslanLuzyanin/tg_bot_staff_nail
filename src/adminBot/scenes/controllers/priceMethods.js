@@ -34,6 +34,11 @@ class PriceMethods {
         const fileIndex = session.selectedIndex;
         const fileName = `photoPrice_${fileIndex}.jpg`;
         const dirPath = path.join(process.cwd(), 'data', 'photo', 'price');
+
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
+
         const filePath = path.join(dirPath, fileName);
 
         const response = await fetch(photoUrl);

@@ -19,6 +19,7 @@ class MenuCallback {
             { text: 'Отобразить оповещение', callback: 'admin_view_notification' },
             { text: 'Удалить оповещение', callback: 'admin_delete_notification' },
             { text: 'Проверить записи', callback: 'menu_check_records' },
+            { text: 'Проверить записи 3 дня', callback: 'menu_check_three_days_records' },
             { text: 'Изменить процедуры', callback: 'menu_procedures' },
             { text: 'Изменить рабочие часы', callback: 'admin_update_hours' },
             { text: 'Изменить прайс-листы', callback: 'menu_price' },

@@ -22,7 +22,23 @@ class ProcedureMethods {
 
     static async enterRussianName(ctx) {
         const { session, message } = ctx;
-        session.editingProcedure.englishName = message.text;
+
+        const englishName = message.text.trim();
+
+        const existingProcedure = await Procedure.findOne({ englishName });
+
+        if (existingProcedure) {
+            await ctx.deleteMessage(message.message_id);
+            await ctx.deleteMessage(session.tempMessage.message_id);
+
+            session.tempMessage = await ctx.reply(
+                'Ошибка: процедура с таким английским названием уже существует. Введите другое название.'
+            );
+            return ctx.wizard.selectStep(ctx.wizard.cursor);
+        }
+
+        // Если название уникально, продолжаем процесс
+        session.editingProcedure.englishName = englishName;
         await ctx.deleteMessage(message.message_id);
         await ctx.deleteMessage(session.tempMessage.message_id);
 
@@ -54,7 +70,7 @@ class ProcedureMethods {
 
     static async saveProcedure(ctx) {
         const { session, message } = ctx;
-        session.editingProcedure.duration = parseInt(message.text);
+        session.editingProcedure.duration = message.text;
         await ctx.deleteMessage(message.message_id);
         await ctx.deleteMessage(session.tempMessage.message_id);
 
@@ -77,7 +93,6 @@ class ProcedureMethods {
         const { session, callbackQuery } = ctx;
         session.editingProcedure = {};
         session.editingProcedure.englishName = callbackQuery.data.split('_')[3];
-
         const procedure = await Procedure.findOne({ englishName: session.editingProcedure.englishName });
         session.tempMessage = await ctx.reply(
             `Текущая длительность процедуры "${procedure.russianName}": ${procedure.duration} часа.\nВведите новую длительность процедуры "${procedure.russianName}" в часах:`
