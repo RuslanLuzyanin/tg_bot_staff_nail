@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
-const Procedure = require('../models/procedure');
-const WorkingTime = require('../models/workingTime');
+const { Procedure, WorkingTime, GroupProcedure } = require('../models/index');
 const { uri } = require('../../config/config');
 
 const seedData = [
@@ -60,6 +59,23 @@ const seedData = [
         ],
     },
     {
+        model: GroupProcedure,
+        data: [
+            {
+                englishName: 'manicure',
+                russianName: 'Маникюр',
+            },
+            {
+                englishName: 'extensions',
+                russianName: 'Наращивание',
+            },
+            {
+                englishName: 'pedicure',
+                russianName: 'Педикюр',
+            },
+        ],
+    },
+    {
         model: WorkingTime,
         data: [
             {
@@ -71,14 +87,19 @@ const seedData = [
 ];
 
 const seed = async () => {
-    await Procedure.deleteMany();
-    await WorkingTime.deleteMany();
-
     for (const { model, data } of seedData) {
-        await model.create(data);
+        for (const item of data) {
+            const existingItem = await model.findOne(item);
+            if (!existingItem) {
+                await model.create(item);
+                console.log(`Data added for model: ${model.modelName}, item:`, item);
+            } else {
+                console.log(`Data already exists for model: ${model.modelName}, item:`, item);
+            }
+        }
     }
 
-    console.log('Database seeded successfully.');
+    console.log('Database checked and seeded successfully.');
     process.exit(0);
 };
 

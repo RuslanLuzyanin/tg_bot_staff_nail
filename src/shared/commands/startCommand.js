@@ -4,16 +4,13 @@ const { Markup } = require('telegraf');
  * Константа, содержащая приветственное сообщение для пользователя.
  * @type {string}
  */
-const START_MESSAGE =
-    'Приветствую! Для работы с ботом нажмите кнопку "Начать".';
+const START_MESSAGE = 'Приветик 👋 Для работы с ботом нажми кнопку «Начать»';
 
 /**
  * Константа, содержащая клавиатуру с кнопкой "Начать".
  * @type {Markup.InlineKeyboardMarkup}
  */
-const START_KEYBOARD = Markup.inlineKeyboard([
-    Markup.button.callback('Начать', 'user_verification'),
-]);
+const START_KEYBOARD = Markup.inlineKeyboard([Markup.button.callback('Начать', 'user_verification')]);
 
 /**
  * Класс, обрабатывающий команду /start.

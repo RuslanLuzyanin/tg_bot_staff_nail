@@ -23,6 +23,13 @@ class ProcedureMethods {
     static async enterRussianName(ctx) {
         const { session, message } = ctx;
 
+        if (!message.text || message.text.trim().length === 0) {
+            await ctx.reply(
+                'Ошибка: текст оповещения не может быть пустым. Пожалуйста, введите текст снова.'
+            );
+            return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
+        }
+
         const englishName = message.text.trim();
 
         const existingProcedure = await Procedure.findOne({ englishName });
@@ -54,6 +61,14 @@ class ProcedureMethods {
 
     static async enterDuration(ctx) {
         const { session, message } = ctx;
+
+        if (!message.text || message.text.trim().length === 0) {
+            await ctx.reply(
+                'Ошибка: текст оповещения не может быть пустым. Пожалуйста, введите текст снова.'
+            );
+            return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
+        }
+
         session.editingProcedure.russianName = message.text;
         await ctx.deleteMessage(message.message_id);
         await ctx.deleteMessage(session.tempMessage.message_id);
@@ -70,7 +85,16 @@ class ProcedureMethods {
 
     static async saveProcedure(ctx) {
         const { session, message } = ctx;
-        session.editingProcedure.duration = message.text;
+        const procedureTime = parseFloat(message.text);
+
+        if (isNaN(procedureTime) || procedureTime < 0.5 || procedureTime > 12) {
+            await ctx.reply(
+                'Ошибка: продолжительность процедуры должна быть числом в диапазоне от 0.5 до 12 часов. Пожалуйста, введите время снова.'
+            );
+            return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
+        }
+
+        session.editingProcedure.duration = procedureTime;
         await ctx.deleteMessage(message.message_id);
         await ctx.deleteMessage(session.tempMessage.message_id);
 
@@ -108,8 +132,17 @@ class ProcedureMethods {
 
     static async saveUpdatedProcedure(ctx) {
         const { session, message } = ctx;
+        const procedureTime = parseFloat(message.text);
+
+        if (isNaN(procedureTime) || procedureTime < 0.5 || procedureTime > 12) {
+            await ctx.reply(
+                'Ошибка: продолжительность процедуры должна быть числом в диапазоне от 0.5 до 12 часов. Пожалуйста, введите время снова.'
+            );
+            return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
+        }
+
         const procedure = await Procedure.findOne({ englishName: session.editingProcedure.englishName });
-        const newDuration = message.text;
+        const newDuration = procedureTime;
 
         procedure.duration = newDuration;
         await procedure.save();

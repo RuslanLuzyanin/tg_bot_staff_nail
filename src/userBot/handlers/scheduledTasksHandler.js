@@ -68,11 +68,10 @@ class ScheduledTasksHandler {
                     const procedure = proceduresByEnglishName[appointment.procedure];
                     const formattedDate = moment(appointment.date).locale('ru').format('D MMM');
                     const message = [
-                        `Напоминаем, что завтра(${formattedDate}) в ${appointment.time},`,
-                        `у Вас процедура - ${procedure.russianName}.`,
-                        `При опоздании более чем 15 минут - запись обнуляется`,
-                        `Если Ваши планы поменялись свяжитесь с мастером или отмените запись.`,
-                        `Ждём Вас 😉`,
+                        `Доброе утро ☀️`,
+                        `Напоминаю, что завтра(${formattedDate}) в ${appointment.time},`,
+                        `У тебя запись ко мне на процедуру🥰`,
+                        `Если твои планы поменялись, свяжись со мной или отмени запись 🫶`,
                     ].join('\n');
                     messagePromises.push(this.bot.telegram.sendMessage(user.chatId, message));
                 }

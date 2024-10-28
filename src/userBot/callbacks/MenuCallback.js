@@ -2,7 +2,7 @@ const MenuService = require('../../shared/services/menuService');
 const GetSlotHoursService = require('../services/getSlotHoursService');
 const AvailableTimeService = require('../services/availableTimeService');
 
-const { Procedure, WorkingTime, Record } = require('../../database/models/index');
+const { GroupProcedure, Procedure, WorkingTime, Record } = require('../../database/models/index');
 
 const { Markup } = require('telegraf');
 const moment = require('moment');
@@ -95,15 +95,11 @@ class MenuCallback {
      * Создаёт меню выбора группы процедур.
      */
     static async createGroupProcedureMenu(ctx) {
-        const groups = [
-            { text: 'Маникюр', value: 'manicure' },
-            { text: 'Наращивание', value: 'extensions' },
-            { text: 'Педикюр', value: 'pedicure' },
-        ];
+        const groupProcedures = await GroupProcedure.find();
 
-        const menuData = groups.map((group) => ({
-            text: group.text,
-            callback: `app_select_group_${group.value}`,
+        const menuData = groupProcedures.map((groupProcedure) => ({
+            text: groupProcedure.russianName,
+            callback: `app_select_group_${groupProcedure.englishName}`,
         }));
 
         menuData.push({ text: 'Назад', callback: 'menu_to_slot_menu' });
@@ -365,7 +361,9 @@ class MenuCallback {
         const procedures = await Procedure.find({}, { englishName: 1, russianName: 1 });
         const procedureMap = new Map(procedures.map((p) => [p.englishName, p.russianName]));
 
-        let message = `Ждём Вас по адресу: ${receptionAddress}. Ваши записи на процедуры:\n`;
+        let message = `Жду тебя к себе в гости💖
+По адресу: ${receptionAddress}. Твои записи на процедуры: \n`;
+
         for (const { procedure, date, time } of appointments) {
             const formattedDate = moment(date).locale('ru').format('D MMM');
             message += `- ${procedureMap.get(procedure)} (${formattedDate} в ${time})\n`;

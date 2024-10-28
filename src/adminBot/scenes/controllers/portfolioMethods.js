@@ -28,6 +28,12 @@ class PortfolioMethods {
 
     static async savePortfolioPhoto(ctx) {
         const { session, message } = ctx;
+
+        if (!message.photo || message.photo.length === 0) {
+            await ctx.reply('Ошибка: фотография не найдена. Пожалуйста, отправьте фотографию снова.');
+            return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
+        }
+
         const largestPhoto = message.photo[message.photo.length - 1];
         const photoUrl = await ctx.telegram.getFileLink(largestPhoto.file_id);
 
