@@ -33,6 +33,16 @@ class DayOffMethods {
     static async saveDayOffRecords(ctx) {
         const { session, message } = ctx;
         const dateParts = message.text.split(',').map((dateStr) => dateStr.trim());
+
+        const invalidDates = dateParts.filter((dateStr) => isNaN(dateStr) || dateStr < 1 || dateStr > 31);
+
+        if (invalidDates.length > 0) {
+            await ctx.reply(
+                `Ошибка: следующие даты неверные: ${invalidDates.join(', ')}. Пожалуйста, введите даты снова.`
+            );
+            return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
+        }
+
         const { startTime } = await WorkingTime.findOne({}, { startTime: 1 });
 
         for (const dateStr of dateParts) {
