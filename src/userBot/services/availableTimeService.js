@@ -13,7 +13,7 @@ class AvailableTimeService {
      * @returns {string[]} - Список доступных временных интервалов.
      */
     static getAvailableTimes(params) {
-        const { slotStartTime, slotEndTime, records, procedureDuration, procedures } = params;
+        const {slotStartTime, slotEndTime, records, procedureDuration, procedures} = params;
         const availableTimes = [];
         let currentTime = moment(slotStartTime, 'HH:mm');
 
@@ -53,18 +53,18 @@ class AvailableTimeService {
      */
     static checkAvailability(currentTime, records, procedureDuration, procedures) {
         let isAvailable = true;
+        const endTime = currentTime.clone().add(procedureDuration, 'hours');
 
         for (const record of records) {
             const procedure = procedures.find((proc) => proc.englishName === record.procedure);
             const recordStartTime = moment(record.time, 'HH:mm');
-            const recordEndTime = moment(record.time, 'HH:mm').add(procedure.duration, 'hours');
+            const recordEndTime = recordStartTime.clone().add(procedure.duration, 'hours');
+
 
             if (
-                currentTime.isBetween(recordStartTime, recordEndTime, 'minute', '[)') ||
-                currentTime
-                    .clone()
-                    .add(procedureDuration, 'hours')
-                    .isBetween(recordStartTime, recordEndTime, 'minute', '()')
+                (currentTime.isBetween(recordStartTime, recordEndTime, 'minute', '[)')) ||
+                (endTime.isBetween(recordStartTime, recordEndTime, 'minute', '(]')) ||
+                (recordStartTime.isBetween(currentTime, endTime, 'minute', '[)'))
             ) {
                 isAvailable = false;
                 break;
@@ -73,6 +73,8 @@ class AvailableTimeService {
 
         return isAvailable;
     }
+
+
 }
 
 module.exports = AvailableTimeService;

@@ -7,54 +7,70 @@ const seedData = [
         model: Procedure,
         data: [
             {
+                englishName: 'off',
+                russianName: 'Выходной',
+                duration: 12,
+                price: 0,
+            },
+            {
                 englishName: 'manicure1',
                 russianName: 'Без покрытия',
                 duration: 1,
+                price: 1000,
             },
             {
                 englishName: 'manicure2',
                 russianName: 'Маникюр S',
                 duration: 2.5,
+                price: 2000,
             },
             {
                 englishName: 'manicure3',
                 russianName: 'Маникюр M',
                 duration: 2.75,
+                price: 2200,
             },
             {
                 englishName: 'manicure4',
                 russianName: 'Маникюр L',
                 duration: 3,
+                price: 2400,
             },
             {
                 englishName: 'extensions1',
                 russianName: 'Наращивание M',
                 duration: 3.5,
+                price: 2600,
             },
             {
                 englishName: 'extensions2',
                 russianName: 'Наращивание L',
                 duration: 3.75,
+                price: 3000,
             },
             {
                 englishName: 'pedicure1',
                 russianName: 'Без покрытия пальчики',
                 duration: 1.5,
+                price: 1400,
             },
             {
                 englishName: 'pedicure2',
                 russianName: 'Без покрытия пальчики + пяточки',
                 duration: 1.5,
+                price: 1800,
             },
             {
                 englishName: 'pedicure3',
                 russianName: 'С покрытием пальчики',
                 duration: 2,
+                price: 2000,
             },
             {
                 englishName: 'pedicure4',
                 russianName: 'С покрытием пальчики + пяточки',
                 duration: 2,
+                price: 2400,
             },
         ],
     },
@@ -80,7 +96,7 @@ const seedData = [
         data: [
             {
                 startTime: '10:00',
-                endTime: '21:00',
+                endTime: '19:00',
             },
         ],
     },
@@ -88,18 +104,16 @@ const seedData = [
 
 const seed = async () => {
     for (const { model, data } of seedData) {
+        await model.deleteMany({});
+        console.log(`All data deleted for model: ${model.modelName}`);
+
         for (const item of data) {
-            const existingItem = await model.findOne(item);
-            if (!existingItem) {
-                await model.create(item);
-                console.log(`Data added for model: ${model.modelName}, item:`, item);
-            } else {
-                console.log(`Data already exists for model: ${model.modelName}, item:`, item);
-            }
+            await model.create(item);
+            console.log(`Data added for model: ${model.modelName}, item:`, item);
         }
     }
 
-    console.log('Database checked and seeded successfully.');
+    console.log('Database seeded successfully.');
     process.exit(0);
 };
 

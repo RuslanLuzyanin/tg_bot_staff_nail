@@ -3,58 +3,42 @@ const { Procedure } = require('../../../database/models/index');
 class ProcedureMethods {
     /**
      * Создание новой процедуры - шаг 1.
-     * Ввод названия процедуры на английском языке.
-     * @param {object} ctx - Контекст Telegram.
-     */
-
-    static async enterEnglishName(ctx) {
-        const { session } = ctx;
-        session.editingProcedure = {};
-        session.tempMessage = await ctx.reply('Введите название процедуры на английском:');
-        return ctx.wizard.next();
-    }
-
-    /**
-     * Создание новой процедуры - шаг 2.
+     * Сохранение названия группы процедуры.
      * Ввод названия процедуры на русском языке.
      * @param {object} ctx - Контекст Telegram.
      */
 
     static async enterRussianName(ctx) {
-        const { session, message } = ctx;
+        const { session, callbackQuery } = ctx;
+        session.editingProcedure = {};
+        const selectGroup = callbackQuery.data.split('_')[3];
 
-        if (!message.text || message.text.trim().length === 0) {
-            await ctx.reply(
-                'Ошибка: текст оповещения не может быть пустым. Пожалуйста, введите текст снова.'
-            );
-            return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
+        const procedures = await Procedure.find({
+            englishName: {$regex: `^${selectGroup}`}
+        }).sort({englishName: 1});
+
+        let lastNumber = 0;
+        if (procedures.length > 0) {
+            const lastProcedure = procedures[procedures.length - 1];
+            const match = lastProcedure.englishName.match(/\d+$/);
+
+            if (match) {
+                lastNumber = parseInt(match[0], 10);
+            }
         }
 
-        const englishName = message.text.trim();
+        const newProcedureNumber = lastNumber + 1;
 
-        const existingProcedure = await Procedure.findOne({ englishName });
-
-        if (existingProcedure) {
-            await ctx.deleteMessage(message.message_id);
-            await ctx.deleteMessage(session.tempMessage.message_id);
-
-            session.tempMessage = await ctx.reply(
-                'Ошибка: процедура с таким английским названием уже существует. Введите другое название.'
-            );
-            return ctx.wizard.selectStep(ctx.wizard.cursor);
-        }
-
-        // Если название уникально, продолжаем процесс
-        session.editingProcedure.englishName = englishName;
-        await ctx.deleteMessage(message.message_id);
-        await ctx.deleteMessage(session.tempMessage.message_id);
+        session.editingProcedure.englishName = `${selectGroup}${newProcedureNumber}`;
+        console.log(session.editingProcedure.englishName);
 
         session.tempMessage = await ctx.reply('Введите название процедуры на русском:');
         return ctx.wizard.next();
     }
 
+
     /**
-     * Создание новой процедуры - шаг 3.
+     * Создание новой процедуры - шаг 2.
      * Ввод длительность процедуры.
      * @param {object} ctx - Контекст Telegram.
      */
@@ -78,7 +62,7 @@ class ProcedureMethods {
     }
 
     /**
-     * Создание новой процедуры - шаг 4.
+     * Создание новой процедуры - шаг 3.
      * Сохранение новой процедуры в базе данных.
      * @param {object} ctx - Контекст Telegram.
      */

@@ -22,7 +22,8 @@ const callbackCodes = {
     DELETE_NOTIFICATION: 'admin_delete_notification',
 
     MENU_PROCEDURES: 'menu_procedures',
-    CREATE_PROCEDURE: 'admin_create_procedure',
+    SELECT_GROUP: 'admin_select_group',
+    CREATE_PROCEDURE: 'admin_create_procedure_',
     UPDATE_PROCEDURE: 'admin_update_procedure_',
     DELETE_PROCEDURE: 'admin_delete_procedure_',
 
@@ -48,10 +49,10 @@ const callbackActions = {
     [callbackCodes.MENU_MAIN]: [MenuCallback.createMainMenu],
     [callbackCodes.USER_VERIFICATION]: [UserCallback.handleVerification, MenuCallback.createMainMenu],
 
-    [callbackCodes.BLOCK_USER]: [MenuCallback.createBlocUserkMenu],
+    [callbackCodes.BLOCK_USER]: [MenuCallback.createBlocUserMenu],
     [callbackCodes.BLOCK_HANDLE]: [AdminCallback.handleBlockUser, MenuCallback.createMainMenu],
 
-    [callbackCodes.UNBLOCK_USER]: [MenuCallback.createUnBlocUserkMenu],
+    [callbackCodes.UNBLOCK_USER]: [MenuCallback.createUnBlocUserMenu],
     [callbackCodes.UNBLOCK_HANDLE]: [AdminCallback.handleUnBlockUser, MenuCallback.createMainMenu],
 
     [callbackCodes.CHECK_RECORDS]: [AdminCallback.getRecordsData, MenuCallback.createCheckRecordsMenu],
@@ -67,6 +68,7 @@ const callbackActions = {
     [callbackCodes.DELETE_NOTIFICATION]: [AdminCallback.handleDeleteNotification],
 
     [callbackCodes.MENU_PROCEDURES]: [MenuCallback.createProcedureMenu],
+    [callbackCodes.SELECT_GROUP]: [MenuCallback.createGroupProcedureMenu],
     [callbackCodes.CREATE_PROCEDURE]: [AdminCallback.handleCreateProcedure, MenuCallback.createMainMenu],
     [callbackCodes.UPDATE_PROCEDURE]: [AdminCallback.handleEditProcedure, MenuCallback.createMainMenu],
     [callbackCodes.DELETE_PROCEDURE]: [AdminCallback.handleDeleteProcedure, MenuCallback.createProcedureMenu],

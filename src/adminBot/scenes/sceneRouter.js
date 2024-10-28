@@ -6,7 +6,6 @@ const {
     saveNotification,
 } = require('./controllers/notificationMethods');
 const {
-    enterEnglishName,
     enterRussianName,
     enterDuration,
     saveProcedure,
@@ -26,7 +25,6 @@ const createNotification = new Scenes.WizardScene(
 );
 const createProcedure = new Scenes.WizardScene(
     'create_procedure',
-    enterEnglishName,
     enterRussianName,
     enterDuration,
     saveProcedure

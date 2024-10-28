@@ -1,9 +1,9 @@
-const { Record, Procedure } = require('../../database/models/index');
+const {Record, Procedure} = require('../../database/models/index');
 
 const AvailableTimeService = require('../services/availableTimeService');
 
 const moment = require('moment');
-const { adminId, receptionAddress } = require('../../config/config');
+const {adminId, receptionAddress} = require('../../config/config');
 
 class AppointmentCallback {
     /**
@@ -11,7 +11,7 @@ class AppointmentCallback {
      * Извлекает имя слота из callbackData и сохраняет его в сессию.
      */
     static async handleSelectSlot(ctx) {
-        const { callbackQuery, session } = ctx;
+        const {callbackQuery, session} = ctx;
         const slotName = callbackQuery.data.split('_').slice(3).join('_');
         if (slotName !== 'confirm') {
             session.selectedSlot = slotName;
@@ -22,7 +22,7 @@ class AppointmentCallback {
      * Очищает выбранный слот из сессии.
      */
     static async clearSelectedSlot(ctx) {
-        const { session } = ctx;
+        const {session} = ctx;
         session.selectedSlot = null;
     }
 
@@ -31,7 +31,7 @@ class AppointmentCallback {
      * Извлекает имя группы процедуры из callbackData и сохраняет его в сессию.
      */
     static async handleSelectGroupProcedure(ctx) {
-        const { callbackQuery, session } = ctx;
+        const {callbackQuery, session} = ctx;
         const groupProcedureName = callbackQuery.data.split('_').slice(3).join('_');
         session.selectedGroupProcedure = groupProcedureName;
     }
@@ -41,7 +41,7 @@ class AppointmentCallback {
      * Извлекает имя процедуры из callbackData и сохраняет его в сессию.
      */
     static async handleSelectProcedure(ctx) {
-        const { callbackQuery, session } = ctx;
+        const {callbackQuery, session} = ctx;
         const procedureName = callbackQuery.data.split('_').slice(3).join('_');
         session.selectedProcedure = procedureName;
     }
@@ -51,7 +51,7 @@ class AppointmentCallback {
      * Извлекает месяц и год из callbackData и сохраняет их в сессию.
      */
     static async handleSelectMonth(ctx) {
-        const { callbackQuery, session } = ctx;
+        const {callbackQuery, session} = ctx;
         const [, , , month, year] = callbackQuery.data.split('_');
         session.selectedMonth = month;
         session.selectedYear = year;
@@ -62,7 +62,7 @@ class AppointmentCallback {
      * Извлекает день, месяц и год из callbackData и сохраняет их в сессию.
      */
     static async handleSelectDay(ctx) {
-        const { callbackQuery, session } = ctx;
+        const {callbackQuery, session} = ctx;
         const [, , , dateString] = callbackQuery.data.split('_');
         const [day, month, year] = dateString.split('.');
         session.selectedDate = new Date(`${month}/${day}/${year}`);
@@ -73,7 +73,7 @@ class AppointmentCallback {
      * Извлекает время из callbackData и сохраняет его в сессию.
      */
     static async handleSelectTime(ctx) {
-        const { callbackQuery, session } = ctx;
+        const {callbackQuery, session} = ctx;
         const [, , , timeString] = callbackQuery.data.split('_');
         session.selectedTime = timeString;
     }
@@ -83,15 +83,17 @@ class AppointmentCallback {
      * Извлекает данные из сессии, сохраняет запись в базу данных.
      */
     static async handleConfirm(ctx, logger, bot) {
-        const { from, session } = ctx;
+        const {from, session} = ctx;
         const userId = from.id.toString();
-        const { selectedDate, selectedTime, selectedProcedure: selectedProcedureEnglishName } = session;
+        const {selectedDate, selectedTime, selectedProcedure: selectedProcedureEnglishName} = session;
 
         const selectedDateMoment = moment(selectedDate, 'DD.MM.YYYY');
         const formattedDate = selectedDateMoment.locale('ru').format('D MMM');
 
         const procedures = await Procedure.find({});
-        const { duration: selectedProcedureDuration, russianName: selectedProcedureRussianName } =
+        const {duration: selectedProcedureDuration,
+            russianName: selectedProcedureRussianName,
+            price: selectedProcedurePrice} =
             procedures.find((proc) => proc.englishName === selectedProcedureEnglishName);
 
         const records = await Record.find({
@@ -120,32 +122,39 @@ class AppointmentCallback {
 
         await newRecord.save();
 
+        const hours = Math.floor(selectedProcedureDuration);
+        const minutes = Math.round((selectedProcedureDuration - hours) * 60);
+
         const messageData = [
-            `Твоя запись✨ ${formattedDate} в ${selectedTime},`,
-            `На процедуру - ${selectedProcedureRussianName} (${selectedProcedureDuration} ч.)`,
-            `По адресу: ${receptionAddress}`,
-            `Пожалуйста не опаздывай ❤️`,
-            `При опоздании больше чем на 15 минут мне прийдется отменить твою запись 💔`,
-            `Я пришлю тебе напоминалку тебе за сутки до записи 😊`,
+            `✨ Твоя запись: ${formattedDate} в ${selectedTime}`,
+            `💼 Процедура: ${selectedProcedureRussianName}`,
+            `⏳ Длительность: ${minutes === 0 ? `${hours} ч.` : `${hours} ч. ${minutes} мин.`}`,
+            `🏷️ Цена: ${selectedProcedurePrice} ₽`,
+            `📍 Адрес: ${receptionAddress}\n`,
+            `⏰ Пожалуйста не опаздывай ❤️`,
+            `🕒 При опоздании больше чем на 15 минут мне прийдется отменить твою запись 💔\n`,
+            `🔔 Я пришлю тебе напоминалку за сутки и за час до записи`,
         ].join('\n');
 
         await ctx.reply(messageData);
 
-        await bot.telegram.sendMessage(
-            adminId,
-            `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} создал запись на ${formattedDate}, ${selectedTime}`
-        );
+        const message = [
+            `${from.first_name} ${from.last_name} (@${from.username})`,
+            `Записался на ${formattedDate}, ${selectedTime}`,
+        ].join('\n');
 
-        logger.info(`Запись на процедуру "${selectedProcedureRussianName}" в ${selectedTime} сохранена`);
+        await bot.telegram.sendMessage(adminId, message);
+
+        logger.info(message);
     }
 
     /**
      * Загружает записи пользователя из базы данных в сессию.
      */
     static async handleGetAppointments(ctx) {
-        const { from, session } = ctx;
+        const {from, session} = ctx;
         const userId = from.id.toString();
-        const records = await Record.find({ userId }).sort({
+        const records = await Record.find({userId}).sort({
             date: 1,
             time: 1,
         });
@@ -161,27 +170,27 @@ class AppointmentCallback {
      * Обрабатывает отмену записи на процедуру.
      */
     static async handleCancel(ctx, logger, bot) {
-        const { callbackQuery, from } = ctx;
+        const {callbackQuery, from} = ctx;
         const [, , procedure, dateString, time] = callbackQuery.data.slice(1).split('_');
         const userId = from.id.toString();
         const [day, month, year] = dateString.split('.');
         const formattedDate = new Date(`${month}/${day}/${year}`);
 
-        const recordToDelete = await Record.findOneAndDelete({
+        await Record.findOneAndDelete({
             userId,
             date: formattedDate,
             time,
             procedure,
         });
 
-        logger.info(
-            `Запись на ${recordToDelete.procedure} в ${recordToDelete.time} ${recordToDelete.date} удалена.`
-        );
-        await bot.telegram.sendMessage(
-            adminId,
-            `Пользователь ${from.first_name} ${from.last_name} (@${from.username}) ${from.id} удалил запись на ${dateString}, ${time}`
-        );
-        const message = await ctx.reply('Ваша запись успешно отменена.');
+        const messageData = [
+            `${from.first_name} ${from.last_name} (@${from.username})`,
+            `Удалил запись на ${dateString}, ${time}`,
+        ].join('\n');
+
+        logger.info(messageData);
+        await bot.telegram.sendMessage(adminId, messageData);
+        const message = await ctx.reply('Запись успешно отменена.');
         setTimeout(() => ctx.deleteMessage(message.message_id), 3000);
     }
 }

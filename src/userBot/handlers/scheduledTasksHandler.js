@@ -3,7 +3,7 @@ const moment = require('moment');
 const path = require('path');
 const fs = require('fs');
 
-const { Record, Procedure, Notification, User } = require('../../database/models/index');
+const {Record, Notification, User} = require('../../database/models/index');
 
 class ScheduledTasksHandler {
     /**
@@ -40,7 +40,7 @@ class ScheduledTasksHandler {
                 {
                     $group: {
                         _id: '$userId',
-                        appointments: { $push: '$$ROOT' },
+                        appointments: {$push: '$$ROOT'},
                     },
                 },
                 {
@@ -56,21 +56,13 @@ class ScheduledTasksHandler {
                 },
             ]);
 
-            const procedures = await Procedure.find();
-            const proceduresByEnglishName = procedures.reduce((acc, proc) => {
-                acc[proc.englishName] = proc;
-                return acc;
-            }, {});
-
             const messagePromises = [];
-            for (const { user, appointments } of records) {
+            for (const {user, appointments} of records) {
                 for (const appointment of appointments) {
-                    const procedure = proceduresByEnglishName[appointment.procedure];
                     const formattedDate = moment(appointment.date).locale('ru').format('D MMM');
                     const message = [
-                        `Доброе утро ☀️`,
-                        `Напоминаю, что завтра(${formattedDate}) в ${appointment.time},`,
-                        `У тебя запись ко мне на процедуру🥰`,
+                        `Доброе утро! ☀️`,
+                        `Напоминаю, что завтра(${formattedDate}) в ${appointment.time}, у тебя запись ко мне на процедуру🥰`,
                         `Если твои планы поменялись, свяжись со мной или отмени запись 🫶`,
                     ].join('\n');
                     messagePromises.push(this.bot.telegram.sendMessage(user.chatId, message));
@@ -79,6 +71,54 @@ class ScheduledTasksHandler {
 
             await Promise.all(messagePromises);
             this.logger.info('Уведомления отправлены');
+        });
+    }
+
+
+    /**
+     * Запускает планировщик напоминаний на ближайший час.
+     * Напоминания рассылаются каждые 15 минут в течение дня.
+     */
+    async scheduleHourlyReminders() {
+        cron.schedule('*/15 * * * *', async () => {
+            const now = moment();
+            const oneHourFromNow = moment().add(1, 'hour');
+
+            const startTime = moment(now).add(55, 'minutes').format('HH:mm');
+            const endTime = moment(oneHourFromNow).add(5, 'minutes').format('HH:mm');
+
+            const todayStart = moment().startOf('day').toDate();
+            const todayEnd = moment().endOf('day').toDate();
+
+            const records = await Record.find({
+                date: {
+                    $gte: todayStart,
+                    $lt: todayEnd,
+                },
+            });
+
+            const filteredRecords = records.find(record => {
+                const recordTime = record.time;
+                return recordTime >= startTime && recordTime <= endTime;
+            });
+
+            if (filteredRecords) {
+                const {userId, time} = filteredRecords;
+
+                const user = await User.findOne({id: userId});
+
+                const message = [
+                    `Привет! 👋`,
+                    `Напоминаю, что через час (в ${time}) у тебя запись ко мне на процедуру.`,
+                    `Если твои планы поменялись, свяжись со мной или отмени запись 🫶`,
+                ].join('\n');
+
+                await this.bot.telegram.sendMessage(user.chatId, message);
+                this.logger.info('Часовое уведомление отправлено');
+
+            } else {
+                this.logger.info('Записи не найдены для отправки уведомлений');
+            }
         });
     }
 
@@ -91,13 +131,13 @@ class ScheduledTasksHandler {
             const notification = await Notification.findOneAndDelete();
             if (!notification) return;
 
-            const users = await User.find({}, { chatId: 1 });
+            const users = await User.find({}, {chatId: 1});
             const filePath = path.join(process.cwd(), notification.photoNotification);
 
             const mediaGroup = [
                 {
                     type: 'photo',
-                    media: { source: filePath },
+                    media: {source: filePath},
                     caption: notification.messageNotification,
                 },
             ];
@@ -120,7 +160,7 @@ class ScheduledTasksHandler {
             const cutoffDate = moment().subtract(1, 'day').toDate();
 
             await Record.deleteMany({
-                date: { $lt: cutoffDate },
+                date: {$lt: cutoffDate},
             });
             this.logger.info('Устаревшие записи удалены');
         });
@@ -130,6 +170,7 @@ class ScheduledTasksHandler {
      * Запускает все планировщики задач.
      */
     start() {
+        this.scheduleHourlyReminders();
         this.scheduleReminders();
         this.scheduleNotifications();
         this.scheduleCleanUp();

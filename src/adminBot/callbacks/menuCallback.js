@@ -5,6 +5,7 @@ const { User, Record, Price, Portfolio, Procedure } = require('../../database/mo
 const { Markup } = require('telegraf');
 const moment = require('moment');
 const path = require('path');
+const {GroupProcedure} = require("../../database/models");
 
 class MenuCallback {
     /**
@@ -36,7 +37,7 @@ class MenuCallback {
      * Создаёт меню блокировки пользователей.
      */
 
-    static async createBlocUserkMenu(ctx) {
+    static async createBlocUserMenu(ctx) {
         const users = await User.find(
             { isBanned: false },
             { id: 1, name: 1, first_name: 1, last_name: 1 }
@@ -60,7 +61,7 @@ class MenuCallback {
      * Создаёт меню разблокировки пользователей.
      */
 
-    static async createUnBlocUserkMenu(ctx) {
+    static async createUnBlocUserMenu(ctx) {
         const users = await User.find(
             { isBanned: true },
             { id: 1, name: 1, first_name: 1, last_name: 1 }
@@ -109,7 +110,7 @@ class MenuCallback {
 
         menuData.push({
             text: 'Создать новую процедуру',
-            callback: 'admin_create_procedure',
+            callback: 'admin_select_group',
         });
         menuData.push({
             text: 'Назад',
@@ -118,6 +119,23 @@ class MenuCallback {
 
         const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
         await ctx.editMessageText(message, keyboard);
+    }
+
+    /**
+     * Создаёт меню выбора группы для создания процедуры.
+     */
+    static async createGroupProcedureMenu(ctx) {
+        const groupProcedures = await GroupProcedure.find()
+
+        const menuData = groupProcedures.map((groupProcedure) => ({
+            text: groupProcedure.russianName,
+            callback: `admin_create_procedure_${groupProcedure.englishName}`,
+        }));
+
+        menuData.push({ text: 'Назад', callback: 'menu_procedures' });
+
+        const keyboard = Markup.inlineKeyboard(MenuService.createMenu(menuData));
+        await ctx.editMessageText('Выберите группу процедур:', keyboard);
     }
 
     /**

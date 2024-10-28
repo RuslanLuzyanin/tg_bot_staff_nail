@@ -20,7 +20,7 @@ class WorkingHoursMethods {
     static async enterEndTime(ctx) {
         const { session, message } = ctx;
 
-        if (!this.isValidTimeFormat(message.text)) {
+        if (!WorkingHoursMethods.isValidTimeFormat(message.text)) {
             await ctx.reply(
                 'Ошибка: время начала рабочего дня должно быть в формате HH:MM и находиться в диапазоне от 00:00 до 23:59. Пожалуйста, введите время снова.'
             );
@@ -42,7 +42,7 @@ class WorkingHoursMethods {
     static async saveWorkingHours(ctx) {
         const { session, message } = ctx;
 
-        if (!this.isValidTimeFormat(message.text)) {
+        if (!WorkingHoursMethods.isValidTimeFormat(message.text)) {
             await ctx.reply(
                 'Ошибка: время окончания рабочего дня должно быть в формате HH:MM и находиться в диапазоне от 00:00 до 23:59. Пожалуйста, введите время снова.'
             );
@@ -55,7 +55,7 @@ class WorkingHoursMethods {
 
         const { startTime, endTime } = session.workingHours;
 
-        if (this.isEndTimeEarlierThanStartTime(startTime, endTime)) {
+        if (WorkingHoursMethods.isEndTimeEarlierThanStartTime(startTime, endTime)) {
             await ctx.reply(
                 'Ошибка: время окончания рабочего дня должно быть позже времени начала. Пожалуйста, введите время снова.'
             );
