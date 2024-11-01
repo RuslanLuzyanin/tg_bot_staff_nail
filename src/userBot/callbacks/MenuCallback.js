@@ -134,23 +134,25 @@ class MenuCallback {
 
         const procedures = await Procedure.find({englishName: {$regex: `^${selectedGroupProcedure}`}});
 
-        let descriptionText = 'Описание процедур:\n\n';
+        const groupProcedure = await GroupProcedure.findOne({englishName: selectedGroupProcedure});
+
+        let descriptionText = `Описание процедур ${groupProcedure.russianName}:\n\n`;
         procedures.forEach(procedure => {
             const hours = Math.floor(procedure.duration);
             const minutes = Math.round((procedure.duration - hours) * 60);
 
-            descriptionText += `${procedure.russianName}\n`;
+            descriptionText += `☑️ ${procedure.russianName}\n`;
 
             if (minutes === 0) {
-                descriptionText += `Длительность: ${hours} ч.\n`;
+                descriptionText += `⏳ Длительность: ${hours} ч.\n`;
             } else {
-                descriptionText += `Длительность: ${hours} ч. ${minutes} мин.\n`;
+                descriptionText += `⏳ Длительность: ${hours} ч. ${minutes} мин.\n`;
             }
 
-            descriptionText += `Цена: ${procedure.price} ₽\n\n`;
+            descriptionText += `🏷️ Цена: ${procedure.price} ₽\n\n`;
         });
-        descriptionText += 'Подробнее о процедурах написано в прайс-листе😉\n'
-        descriptionText += 'Выберите процедуру:\n\n';
+        descriptionText += 'Что включено в каждую процедуру можешь ознакомиться в прайс-листе 😉 /price\n\n'
+        descriptionText += `Выберите процедуру ${groupProcedure.russianName}:\n\n`;
 
         const menuData = procedures.map((procedure) => ({
             text: procedure.russianName,
@@ -338,7 +340,12 @@ class MenuCallback {
      *
      */
     static async createConfirmationMenu(ctx) {
-        const {selectedDate, selectedTime, selectedProcedure: selectedProcedureEnglishName} = ctx.session;
+        const {
+            selectedDate,
+            selectedTime,
+            selectedGroupProcedure,
+            selectedProcedure: selectedProcedureEnglishName
+        } = ctx.session;
         const selectedDateMoment = moment(selectedDate, 'DD.MM.YYYY');
         const formattedDate = selectedDateMoment.locale('ru').format('D MMM');
         const dayOfWeek = selectedDateMoment.locale('ru').format('dddd');
@@ -350,6 +357,8 @@ class MenuCallback {
             price: selectedProcedurePrice
         } =
             procedures.find((proc) => proc.englishName === selectedProcedureEnglishName);
+
+        const groupProcedure = await GroupProcedure.findOne({englishName: selectedGroupProcedure});
 
         const records = await Record.find({
             date: selectedDate,
@@ -374,7 +383,7 @@ class MenuCallback {
         const message = [
             `🗓️ Записываю на`,
             `      ${formattedDate} (${dayOfWeek}) в ${selectedTime}?`,
-            `💼 Твоя процедура: ${selectedProcedureRussianName}`,
+            `💼 Процедура: ${groupProcedure.russianName} ${selectedProcedureRussianName}`,
             `⏳ Длительность: ${minutes === 0 ? `${hours} ч.` : `${hours} ч. ${minutes} мин.`}`,
             `🏷️ Цена: ${selectedProcedurePrice} ₽`,
         ].join('\n');
@@ -405,15 +414,18 @@ class MenuCallback {
         const procedures = await Procedure.find({}, {englishName: 1, russianName: 1});
         const procedureMap = new Map(procedures.map((p) => [p.englishName, p.russianName]));
 
+        const groupProcedures = await GroupProcedure.find({}, {englishName: 1, russianName: 1});
+        const groupProcedureMap = new Map(groupProcedures.map((p) => [p.englishName, p.russianName]));
+
         let message = [
             `Жду тебя к себе в гости💖`,
             `🏠 По адресу: ${receptionAddress}.\n`,
             `Твои записи на процедуры:\n`,
         ].join('\n');
 
-        for (const {procedure, date, time} of appointments) {
+        for (const {groupProcedure, procedure, date, time} of appointments) {
             const formattedDate = moment(date).locale('ru').format('D MMM');
-            message += `☑️ ${procedureMap.get(procedure)} (${formattedDate} в ${time})\n`;
+            message += `☑️ ${formattedDate} ${time} - ${groupProcedureMap.get(groupProcedure)} ${procedureMap.get(procedure)}\n`;
         }
 
         const menuData = [{text: 'Назад', callback: 'menu_to_main_menu'}];
@@ -437,12 +449,15 @@ class MenuCallback {
         const procedures = await Procedure.find({}, {englishName: 1, russianName: 1});
         const procedureMap = new Map(procedures.map((p) => [p.englishName, p.russianName]));
 
+        const groupProcedures = await GroupProcedure.find({}, {englishName: 1, russianName: 1});
+        const groupProcedureMap = new Map(groupProcedures.map((p) => [p.englishName, p.russianName]));
+
         let message = 'Выберите запись для отмены:\n\n';
         const menuData = [];
 
-        for (const {procedure, date, time} of appointments) {
+        for (const {groupProcedure, procedure, date, time} of appointments) {
             const formattedDate = moment(date).locale('ru').format('D MMM');
-            const buttonText = `${procedureMap.get(procedure)} (${formattedDate} в ${time})`;
+            const buttonText = `☑️ ${formattedDate} ${time} - ${groupProcedureMap.get(groupProcedure)} ${procedureMap.get(procedure)}`;
             menuData.push({
                 text: buttonText,
                 callback: `app_cancel_${procedure}_${moment(date).format('DD.MM.YYYY')}_${time}`,

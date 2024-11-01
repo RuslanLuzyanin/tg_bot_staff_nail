@@ -11,6 +11,7 @@ const sessionSchema = new Schema({
     appointments: {
         type: [
             {
+                groupProcedure: { type: String },
                 procedure: { type: String, ref: 'procedures' },
                 date: { type: Date },
                 time: { type: String },

@@ -8,8 +8,10 @@ const {
 const {
     enterRussianName,
     enterDuration,
+    enterPrice,
     saveProcedure,
-    enterNewProcedureDuration,
+    enterNewProcedureDetails,
+    enterNewPrice,
     saveUpdatedProcedure,
 } = require('./controllers/procedureMethods');
 const { enterDayOffDates, saveDayOffRecords } = require('./controllers/dayOffMethods');
@@ -27,11 +29,13 @@ const createProcedure = new Scenes.WizardScene(
     'create_procedure',
     enterRussianName,
     enterDuration,
+    enterPrice,
     saveProcedure
 );
 const editProcedure = new Scenes.WizardScene(
     'edit_procedure',
-    enterNewProcedureDuration,
+    enterNewProcedureDetails,
+    enterNewPrice,
     saveUpdatedProcedure
 );
 const updateDayOff = new Scenes.WizardScene('update_day_off', enterDayOffDates, saveDayOffRecords);

@@ -20,6 +20,7 @@ const adminSessionSchema = new Schema({
         englishName: { type: String },
         russianName: { type: String },
         duration: { type: Number },
+        price: { type: Number },
     },
 });
 
