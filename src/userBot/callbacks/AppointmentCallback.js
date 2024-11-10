@@ -1,4 +1,4 @@
-const {Record, Procedure} = require('../../database/models/index');
+const {Record, GroupProcedure, Procedure} = require('../../database/models/index');
 
 const AvailableTimeService = require('../services/availableTimeService');
 
@@ -32,8 +32,7 @@ class AppointmentCallback {
      */
     static async handleSelectGroupProcedure(ctx) {
         const {callbackQuery, session} = ctx;
-        const groupProcedureName = callbackQuery.data.split('_').slice(3).join('_');
-        session.selectedGroupProcedure = groupProcedureName;
+        session.selectedGroupProcedure = callbackQuery.data.split('_').slice(3).join('_');
     }
 
     /**
@@ -42,8 +41,7 @@ class AppointmentCallback {
      */
     static async handleSelectProcedure(ctx) {
         const {callbackQuery, session} = ctx;
-        const procedureName = callbackQuery.data.split('_').slice(3).join('_');
-        session.selectedProcedure = procedureName;
+        session.selectedProcedure = callbackQuery.data.split('_').slice(3).join('_');
     }
 
     /**
@@ -85,16 +83,25 @@ class AppointmentCallback {
     static async handleConfirm(ctx, logger, bot) {
         const {from, session} = ctx;
         const userId = from.id.toString();
-        const {selectedDate, selectedTime, selectedProcedure: selectedProcedureEnglishName} = session;
+        const {
+            selectedDate,
+            selectedTime,
+            selectedGroupProcedure,
+            selectedProcedure: selectedProcedureEnglishName
+        } = session;
 
         const selectedDateMoment = moment(selectedDate, 'DD.MM.YYYY');
         const formattedDate = selectedDateMoment.locale('ru').format('D MMM');
 
         const procedures = await Procedure.find({});
-        const {duration: selectedProcedureDuration,
+        const {
+            duration: selectedProcedureDuration,
             russianName: selectedProcedureRussianName,
-            price: selectedProcedurePrice} =
+            price: selectedProcedurePrice
+        } =
             procedures.find((proc) => proc.englishName === selectedProcedureEnglishName);
+
+        const groupProcedure = await GroupProcedure.findOne({englishName: selectedGroupProcedure});
 
         const records = await Record.find({
             date: selectedDate,
@@ -118,16 +125,18 @@ class AppointmentCallback {
             date: new Date(selectedDate),
             time: selectedTime,
             procedure: selectedProcedureEnglishName,
+            groupProcedure: selectedGroupProcedure,
         });
 
         await newRecord.save();
 
-        const hours = Math.floor(selectedProcedureDuration);
-        const minutes = Math.round((selectedProcedureDuration - hours) * 60);
+        const adjustedDuration = selectedProcedureDuration - 0.5;
+        const hours = Math.floor(adjustedDuration);
+        const minutes = Math.round((adjustedDuration - hours) * 60);
 
         const messageData = [
             `✨ Твоя запись: ${formattedDate} в ${selectedTime}`,
-            `💼 Процедура: ${selectedProcedureRussianName}`,
+            `💼 Процедура: ${groupProcedure.russianName} ${selectedProcedureRussianName}`,
             `⏳ Длительность: ${minutes === 0 ? `${hours} ч.` : `${hours} ч. ${minutes} мин.`}`,
             `🏷️ Цена: ${selectedProcedurePrice} ₽`,
             `📍 Адрес: ${receptionAddress}\n`,
@@ -158,12 +167,12 @@ class AppointmentCallback {
             date: 1,
             time: 1,
         });
-        const appointments = records.map((record) => ({
+        session.appointments = records.map((record) => ({
+            groupProcedure: record.groupProcedure,
             procedure: record.procedure,
             date: record.date,
             time: record.time,
         }));
-        session.appointments = appointments;
     }
 
     /**

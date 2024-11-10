@@ -280,7 +280,7 @@ class AdminCallback {
                 $gte: date,
                 $lt: moment(date).add(1, 'day').toDate(),
             },
-            procedure: 'Off',
+            procedure: 'off',
         });
 
         const message = await ctx.reply(`Выходной на ${moment(date).format('DD.MM.YYYY')} был удален.`);

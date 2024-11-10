@@ -347,7 +347,7 @@ class MenuCallback {
         const records = await Record.find(
             {
                 date: { $gte: startDate, $lte: endDate },
-                procedure: 'Off',
+                procedure: 'off',
             },
             { date: 1 }
         );

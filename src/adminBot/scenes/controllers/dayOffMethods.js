@@ -1,4 +1,4 @@
-const { Record, WorkingTime } = require('../../../database/models/index');
+const {Record, WorkingTime} = require('../../../database/models/index');
 
 class DayOffMethods {
     /**
@@ -8,7 +8,7 @@ class DayOffMethods {
      */
 
     static async enterDayOffDates(ctx) {
-        const { session } = ctx;
+        const {session} = ctx;
 
         const workingTimeExists = (await WorkingTime.countDocuments()) > 0;
 
@@ -31,7 +31,7 @@ class DayOffMethods {
      */
 
     static async saveDayOffRecords(ctx) {
-        const { session, message } = ctx;
+        const {session, message} = ctx;
         const dateParts = message.text.split(',').map((dateStr) => dateStr.trim());
 
         const invalidDates = dateParts.filter((dateStr) => isNaN(dateStr) || dateStr < 1 || dateStr > 31);
@@ -43,12 +43,19 @@ class DayOffMethods {
             return ctx.wizard.selectStep(ctx.wizard.cursor - 1);
         }
 
-        const { startTime } = await WorkingTime.findOne({}, { startTime: 1 });
+        const {startTime} = await WorkingTime.findOne({}, {startTime: 1});
 
         for (const dateStr of dateParts) {
             const date = new Date(`${session.selectedYear}-${session.selectedMonth}-${dateStr}`);
             const time = startTime;
-            await Record.create({ userId: ctx.from.id, date, time, procedure: 'Off' });
+            await Record.create({
+                userId: ctx.from.id,
+                date,
+                time,
+                procedure: 'off',
+                groupProcedure: 'default',
+            });
+
         }
 
         await ctx.deleteMessage(message.message_id);

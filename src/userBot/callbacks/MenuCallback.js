@@ -106,10 +106,12 @@ class MenuCallback {
     static async createGroupProcedureMenu(ctx) {
         const groupProcedures = await GroupProcedure.find();
 
-        const menuData = groupProcedures.map((groupProcedure) => ({
-            text: groupProcedure.russianName,
-            callback: `app_select_group_${groupProcedure.englishName}`,
-        }));
+        const menuData = groupProcedures
+            .filter((groupProcedure) => groupProcedure.englishName !== 'default')
+            .map((groupProcedure) => ({
+                text: groupProcedure.russianName,
+                callback: `app_select_group_${groupProcedure.englishName}`,
+            }));
 
         menuData.push({text: 'Назад', callback: 'menu_to_slot_menu'});
 
@@ -138,8 +140,9 @@ class MenuCallback {
 
         let descriptionText = `Описание процедур ${groupProcedure.russianName}:\n\n`;
         procedures.forEach(procedure => {
-            const hours = Math.floor(procedure.duration);
-            const minutes = Math.round((procedure.duration - hours) * 60);
+            const adjustedDuration = procedure.duration - 0.5;
+            const hours = Math.floor(adjustedDuration);
+            const minutes = Math.round((adjustedDuration - hours) * 60);
 
             descriptionText += `☑️ ${procedure.russianName}\n`;
 
@@ -249,11 +252,13 @@ class MenuCallback {
             const formattedDate = startDate.format('DD.MM.YYYY');
             let isDateAvailable = false;
 
+            const dayStart = startDate.clone().startOf('day').toDate();
+            const dayEnd = startDate.clone().endOf('day').toDate();
+
             const records = await Record.find({
-                date: startDate.toDate(),
-                time: {
-                    $gte: slotStartMoment.format('HH:mm'),
-                    $lt: slotEndMoment.format('HH:mm'),
+                date: {
+                    $gte: dayStart,
+                    $lt: dayEnd,
                 },
             });
 
@@ -310,8 +315,13 @@ class MenuCallback {
             selectedProcedureDuration
         );
 
+        const selectedDateStartOfDay = moment(selectedDate).startOf('day').toDate();
+
         const records = await Record.find({
-            date: selectedDate,
+            date: {
+                $gte: selectedDateStartOfDay,
+                $lt: moment(selectedDateStartOfDay).add(1, 'day').toDate()
+            }
         });
 
         const availableTimes = AvailableTimeService.getAvailableTimes({
@@ -377,8 +387,9 @@ class MenuCallback {
             throw new Error('appointmentConflictError');
         }
 
-        const hours = Math.floor(selectedProcedureDuration);
-        const minutes = Math.round((selectedProcedureDuration - hours) * 60);
+        const adjustedDuration = selectedProcedureDuration - 0.5;
+        const hours = Math.floor(adjustedDuration);
+        const minutes = Math.round((adjustedDuration - hours) * 60);
 
         const message = [
             `🗓️ Записываю на`,
